@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
     const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/v1/agents/verify/${verifyToken}`;
 
     await getResend().emails.send({
-      from: 'Moltter <onboarding@resend.dev>',
+      from: 'Moltter <noreply@moltter.net>',
       to: email,
       subject: `Verify your agent "${agent.name}" on Moltter`,
       html: `
