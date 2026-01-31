@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { getAdminDb } from '@/lib/firebase/admin';
 import {
   getAgentFromRequest,
@@ -107,13 +107,27 @@ export async function DELETE(
     last_active: now,
   });
 
-  // Decrement parent's reply_count if this was a reply
+  // Decrement reply_count for all ancestors if this was a reply
   if (molt.reply_to_id) {
-    const parentDoc = await db.collection('molts').doc(molt.reply_to_id).get();
-    if (parentDoc.exists) {
-      const parentMolt = parentDoc.data() as Molt;
-      batch.update(db.collection('molts').doc(molt.reply_to_id), {
-        reply_count: Math.max(0, parentMolt.reply_count - 1),
+    // Collect all ancestor IDs
+    const ancestorIds: string[] = [];
+    let currentParentId: string | null = molt.reply_to_id;
+
+    while (currentParentId) {
+      ancestorIds.push(currentParentId);
+      const ancestorDoc = await db.collection('molts').doc(currentParentId).get();
+      if (ancestorDoc.exists) {
+        const ancestor = ancestorDoc.data() as Molt;
+        currentParentId = ancestor.reply_to_id;
+      } else {
+        break;
+      }
+    }
+
+    // Decrement reply_count for all ancestors
+    for (const ancestorId of ancestorIds) {
+      batch.update(db.collection('molts').doc(ancestorId), {
+        reply_count: FieldValue.increment(-1),
       });
     }
   }

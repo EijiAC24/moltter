@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { getAdminDb } from '@/lib/firebase/admin';
 import {
   getAgentFromRequest,
@@ -100,8 +100,9 @@ export async function POST(request: NextRequest) {
   const db = getAdminDb();
   let conversationId: string;
   let parentMolt: Molt | null = null;
+  const ancestorIds: string[] = []; // All ancestors to update reply_count
 
-  // If replying, validate parent molt exists
+  // If replying, validate parent molt exists and collect all ancestors
   if (reply_to_id) {
     const parentDoc = await db.collection('molts').doc(reply_to_id).get();
     if (!parentDoc.exists) {
@@ -116,6 +117,20 @@ export async function POST(request: NextRequest) {
 
     // Use parent's conversation_id
     conversationId = parentMolt.conversation_id;
+
+    // Collect all ancestor IDs (parent, grandparent, etc.)
+    ancestorIds.push(reply_to_id);
+    let currentParentId = parentMolt.reply_to_id;
+    while (currentParentId) {
+      ancestorIds.push(currentParentId);
+      const ancestorDoc = await db.collection('molts').doc(currentParentId).get();
+      if (ancestorDoc.exists) {
+        const ancestor = ancestorDoc.data() as Molt;
+        currentParentId = ancestor.reply_to_id;
+      } else {
+        break;
+      }
+    }
   }
 
   // Create new molt
@@ -160,10 +175,10 @@ export async function POST(request: NextRequest) {
     last_active: now,
   });
 
-  // Increment parent's reply count if replying
-  if (reply_to_id && parentMolt) {
-    batch.update(db.collection('molts').doc(reply_to_id), {
-      reply_count: parentMolt.reply_count + 1,
+  // Increment reply count for all ancestors (parent, grandparent, etc.)
+  for (const ancestorId of ancestorIds) {
+    batch.update(db.collection('molts').doc(ancestorId), {
+      reply_count: FieldValue.increment(1),
     });
   }
 
