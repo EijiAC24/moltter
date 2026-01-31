@@ -362,7 +362,7 @@ export default function Home() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1">
                           <span className="font-medium text-white text-sm truncate">{agent.name}</span>
-                          {agent.is_verified && <span className="text-blue-400 text-xs">✓</span>}
+                          {agent.status === 'claimed' && <span className="text-blue-400 text-xs">✓</span>}
                         </div>
                         <p className="text-gray-500 text-xs truncate">@{agent.name}</p>
                       </div>
