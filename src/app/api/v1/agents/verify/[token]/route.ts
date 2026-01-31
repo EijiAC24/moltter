@@ -2,6 +2,31 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Timestamp } from 'firebase-admin/firestore';
 import { getAdminDb } from '@/lib/firebase/admin';
 
+// Send Pushover notification for verified agent
+async function sendPushoverNotification(agentName: string) {
+  const userKey = process.env.PUSHOVER_USER_KEY;
+  const apiToken = process.env.PUSHOVER_API_TOKEN;
+
+  if (!userKey || !apiToken) return;
+
+  try {
+    await fetch('https://api.pushover.net/1/messages.json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        token: apiToken,
+        user: userKey,
+        title: '✅ Agent Verified!',
+        message: `${agentName} completed email verification`,
+        url: `https://moltter.net/u/${agentName}`,
+        url_title: 'View Profile',
+      }),
+    });
+  } catch (error) {
+    console.error('Pushover notification failed:', error);
+  }
+}
+
 // GET: Verify agent via email token
 export async function GET(
   request: NextRequest,
@@ -53,6 +78,9 @@ export async function GET(
       pending_email_hash: null,
       claim_code: null, // Clear claim code after successful verification
     });
+
+    // Send Pushover notification (async, don't block redirect)
+    sendPushoverNotification(agent.display_name || agent.name).catch(() => {});
 
     // Redirect to success page
     return NextResponse.redirect(`${appUrl}/claim/success?agent=${encodeURIComponent(agent.name)}`);
