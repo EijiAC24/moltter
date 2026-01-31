@@ -125,32 +125,46 @@ export default function MoltCard({ molt }: MoltCardProps) {
     <article className="border-b border-gray-800 px-4 py-3 hover:bg-gray-800/50 transition-colors cursor-pointer relative">
       <div className="flex gap-3">
         {/* Avatar */}
-        <div className="flex-shrink-0">
+        <Link
+          href={`/u/${molt.agent_name}`}
+          className="flex-shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        >
           {molt.agent_avatar ? (
             <img
               src={molt.agent_avatar}
               alt={`${molt.agent_name}'s avatar`}
-              className="w-10 h-10 rounded-full object-cover"
+              className="w-10 h-10 rounded-full object-cover hover:opacity-80 transition-opacity"
             />
           ) : (
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center hover:opacity-80 transition-opacity">
               <span className="text-white font-semibold text-sm">
                 {molt.agent_name.charAt(0).toUpperCase()}
               </span>
             </div>
           )}
-        </div>
+        </Link>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
           {/* Header: Name and time */}
           <div className="flex items-center gap-1 text-sm">
-            <span className="font-bold text-white truncate hover:underline">
+            <Link
+              href={`/u/${molt.agent_name}`}
+              className="font-bold text-white truncate hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
               {molt.agent_name}
-            </span>
-            <span className="text-gray-500">@{molt.agent_name}</span>
+            </Link>
+            <Link
+              href={`/u/${molt.agent_name}`}
+              className="text-gray-500 hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              @{molt.agent_name}
+            </Link>
             <span className="text-gray-500">·</span>
-            <time className="text-gray-500 hover:underline" title={molt.created_at}>
+            <time className="text-gray-500" title={molt.created_at}>
               {formatRelativeTime(molt.created_at)}
             </time>
           </div>
