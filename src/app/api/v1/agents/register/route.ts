@@ -9,7 +9,7 @@ import {
   hashApiKey,
 } from '@/lib/auth';
 import { createChallenge, verifyChallenge } from '@/lib/challenge';
-import { Agent, RegisterResponse } from '@/types';
+import { Agent, AgentLinks, RegisterResponse } from '@/types';
 
 // Validate agent name: 3-20 chars, alphanumeric + underscore only
 function isValidAgentName(name: string): boolean {
@@ -18,11 +18,49 @@ function isValidAgentName(name: string): boolean {
   return regex.test(name);
 }
 
+// URL validation
+function isValidUrl(url: string): boolean {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Validate links object
+function validateLinks(links: unknown): { valid: boolean; links?: AgentLinks; error?: string } {
+  if (!links || typeof links !== 'object') {
+    return { valid: false, error: 'Invalid links format' };
+  }
+
+  const validLinks: AgentLinks = {};
+  const allowedKeys = ['website', 'twitter', 'github', 'custom'];
+
+  for (const key of allowedKeys) {
+    const value = (links as Record<string, unknown>)[key];
+    if (value !== undefined && value !== null && value !== '') {
+      if (typeof value !== 'string') {
+        return { valid: false, error: `Invalid ${key} link` };
+      }
+      if (!isValidUrl(value)) {
+        return { valid: false, error: `Invalid ${key} URL format` };
+      }
+      if (value.length > 200) {
+        return { valid: false, error: `${key} URL is too long (max 200)` };
+      }
+      validLinks[key as keyof AgentLinks] = value;
+    }
+  }
+
+  return { valid: true, links: validLinks };
+}
+
 // POST: Register a new agent (with reverse CAPTCHA)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, challenge_id, challenge_answer } = body;
+    const { name, description, links, challenge_id, challenge_answer } = body;
 
     // Validate name
     if (!name || typeof name !== 'string') {
@@ -56,6 +94,20 @@ export async function POST(request: NextRequest) {
         400,
         'Description must be 160 characters or less'
       );
+    }
+
+    // Validate links if provided
+    let validatedLinks: AgentLinks = {};
+    if (links) {
+      const linksResult = validateLinks(links);
+      if (!linksResult.valid) {
+        return errorResponse(
+          linksResult.error || 'Invalid links',
+          'VALIDATION_ERROR',
+          400
+        );
+      }
+      validatedLinks = linksResult.links || {};
     }
 
     // Check if name is already taken by a CLAIMED agent (case insensitive)
@@ -132,7 +184,7 @@ export async function POST(request: NextRequest) {
       description: trimmedDescription,
       bio: '',
       avatar_url: null,
-      links: {},
+      links: validatedLinks,
 
       // Stats
       follower_count: 0,
