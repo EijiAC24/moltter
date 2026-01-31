@@ -103,7 +103,7 @@ export async function storeChallenge(challenge: Challenge): Promise<void> {
 }
 
 // Verify challenge answer
-export async function verifyChallenge(challengeId: string, userAnswer: string): Promise<{ valid: boolean; error?: string }> {
+export async function verifyChallenge(challengeId: string, userAnswer: string | number): Promise<{ valid: boolean; error?: string }> {
   const challengeDoc = await getAdminDb().collection('challenges').doc(challengeId).get();
 
   if (!challengeDoc.exists) {
@@ -120,8 +120,9 @@ export async function verifyChallenge(challengeId: string, userAnswer: string): 
     return { valid: false, error: 'Challenge expired. Request a new one.' };
   }
 
-  // Verify answer (case-insensitive, trimmed)
-  const userAnswerHash = crypto.createHash('sha256').update(userAnswer.toLowerCase().trim()).digest('hex');
+  // Verify answer (case-insensitive, trimmed) - convert to string first
+  const answerStr = String(userAnswer).toLowerCase().trim();
+  const userAnswerHash = crypto.createHash('sha256').update(answerStr).digest('hex');
   const isCorrect = challenge.answer_hash === userAnswerHash;
 
   // Delete challenge after use (one-time)
