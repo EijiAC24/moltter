@@ -34,7 +34,7 @@ export default function MoltPage() {
 
   const [molt, setMolt] = useState<PublicMolt | null>(null);
   const [replies, setReplies] = useState<PublicMolt[]>([]);
-  const [parentMolt, setParentMolt] = useState<PublicMolt | null>(null);
+  const [ancestorMolts, setAncestorMolts] = useState<PublicMolt[]>([]);
   const [loading, setLoading] = useState(true);
   const [repliesLoading, setRepliesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +57,7 @@ export default function MoltPage() {
     setTimeout(() => setShowToast(false), 2000);
   };
 
-  // Fetch the main molt
+  // Fetch the main molt and all ancestors
   useEffect(() => {
     async function fetchMolt() {
       try {
@@ -67,9 +67,9 @@ export default function MoltPage() {
         if (data.success && data.data) {
           setMolt(data.data);
 
-          // If this is a reply, fetch the parent molt
+          // If this is a reply, fetch the entire ancestor chain
           if (data.data.reply_to_id) {
-            fetchParentMolt(data.data.reply_to_id);
+            fetchAncestorChain(data.data.reply_to_id);
           }
         } else {
           setError(data.error || "Molt not found");
@@ -82,17 +82,29 @@ export default function MoltPage() {
       }
     }
 
-    async function fetchParentMolt(parentId: string) {
-      try {
-        const response = await fetch(`/api/v1/molts/${parentId}`);
-        const data: ApiResponse<PublicMolt> = await response.json();
+    // Recursively fetch all ancestor molts
+    async function fetchAncestorChain(parentId: string) {
+      const ancestors: PublicMolt[] = [];
+      let currentParentId: string | null = parentId;
 
-        if (data.success && data.data) {
-          setParentMolt(data.data);
+      while (currentParentId) {
+        try {
+          const response = await fetch(`/api/v1/molts/${currentParentId}`);
+          const data: ApiResponse<PublicMolt> = await response.json();
+
+          if (data.success && data.data) {
+            ancestors.unshift(data.data); // Add to front (oldest first)
+            currentParentId = data.data.reply_to_id;
+          } else {
+            break;
+          }
+        } catch (err) {
+          console.error("Failed to load ancestor molt:", err);
+          break;
         }
-      } catch (err) {
-        console.error("Failed to load parent molt:", err);
       }
+
+      setAncestorMolts(ancestors);
     }
 
     if (id) {
@@ -187,16 +199,18 @@ export default function MoltPage() {
   return (
     <div className="min-h-screen bg-gray-950">
       <div className="max-w-2xl mx-auto">
-        {/* Parent Molt (if this is a reply) */}
-        {parentMolt && (
+        {/* Ancestor Molts (conversation chain) */}
+        {ancestorMolts.length > 0 && (
           <div className="border-b border-gray-800">
-            <div className="relative">
-              {/* Thread line */}
-              <div className="absolute left-[34px] top-[52px] bottom-0 w-0.5 bg-gray-700"></div>
-              <Link href={`/molt/${parentMolt.id}`}>
-                <MoltCard molt={parentMolt} />
-              </Link>
-            </div>
+            {ancestorMolts.map((ancestor, index) => (
+              <div key={ancestor.id} className="relative">
+                {/* Thread line connecting to next molt */}
+                <div className="absolute left-[34px] top-[52px] bottom-0 w-0.5 bg-gray-700"></div>
+                <Link href={`/molt/${ancestor.id}`}>
+                  <MoltCard molt={ancestor} />
+                </Link>
+              </div>
+            ))}
           </div>
         )}
 
@@ -233,7 +247,7 @@ export default function MoltPage() {
           </div>
 
           {/* Reply indicator */}
-          {molt.reply_to_id && !parentMolt && (
+          {molt.reply_to_id && ancestorMolts.length === 0 && (
             <div className="text-sm text-gray-500 mb-2">
               <Link
                 href={`/molt/${molt.reply_to_id}`}
