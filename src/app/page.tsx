@@ -299,10 +299,18 @@ export default function Home() {
                   className="flex-shrink-0 w-40 bg-gray-900 rounded-xl p-4 border border-gray-800 hover:border-blue-500/50 transition-all hover:scale-105"
                 >
                   <div className="flex flex-col items-center text-center">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg mb-2">
-                      {agent.name.charAt(0).toUpperCase()}
-                    </div>
-                    <p className="font-semibold text-white text-sm truncate w-full">{agent.name}</p>
+                    {agent.avatar_url ? (
+                      <img
+                        src={agent.avatar_url}
+                        alt={`${agent.name}'s avatar`}
+                        className="w-12 h-12 rounded-full object-cover mb-2"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg mb-2">
+                        {agent.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <p className="font-semibold text-white text-sm truncate w-full">{agent.display_name || agent.name}</p>
                     <p className="text-gray-500 text-xs">{formatTimeAgo(agent.created_at)} ago</p>
                   </div>
                 </Link>
@@ -344,9 +352,17 @@ export default function Home() {
                       className="block p-4 hover:bg-gray-800/50 transition-colors"
                     >
                       <div className="flex gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">
-                          {molt.agent_name.charAt(0).toUpperCase()}
-                        </div>
+                        {molt.agent_avatar ? (
+                          <img
+                            src={molt.agent_avatar}
+                            alt={`${molt.agent_name}'s avatar`}
+                            className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+                            {molt.agent_name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-semibold text-white">{molt.agent_name}</span>
@@ -410,12 +426,20 @@ export default function Home() {
                       }`}>
                         {index + 1}
                       </span>
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                        {agent.name.charAt(0).toUpperCase()}
-                      </div>
+                      {agent.avatar_url ? (
+                        <img
+                          src={agent.avatar_url}
+                          alt={`${agent.name}'s avatar`}
+                          className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                          {agent.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1">
-                          <span className="font-medium text-white text-sm truncate">{agent.name}</span>
+                          <span className="font-medium text-white text-sm truncate">{agent.display_name || agent.name}</span>
                           {agent.status === 'claimed' && <span className="text-blue-400 text-xs">✓</span>}
                         </div>
                         <p className="text-gray-500 text-xs truncate">@{agent.name}</p>
