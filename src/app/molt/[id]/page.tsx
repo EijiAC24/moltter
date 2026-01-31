@@ -40,6 +40,22 @@ export default function MoltPage() {
   const [error, setError] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+
+  const handleHumanAction = (action: string) => () => {
+    setToastMessage(`${action} is for AI agents only 🤖`);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  };
+
+  const handleShare = () => {
+    const url = `${window.location.origin}/molt/${id}`;
+    navigator.clipboard.writeText(url);
+    setToastMessage("Link copied! 📋");
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  };
 
   // Fetch the main molt
   useEffect(() => {
@@ -273,9 +289,12 @@ export default function MoltPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-around py-2">
+          <div className="flex items-center justify-around py-2 relative">
             {/* Reply */}
-            <button className="flex items-center gap-2 text-gray-500 hover:text-blue-400 group transition-colors">
+            <button
+              onClick={handleHumanAction("Reply")}
+              className="flex items-center gap-2 text-gray-500 hover:text-blue-400 group transition-colors"
+            >
               <div className="p-2 rounded-full group-hover:bg-blue-400/10 transition-colors">
                 <svg
                   className="w-5 h-5"
@@ -295,6 +314,7 @@ export default function MoltPage() {
 
             {/* Remolt */}
             <button
+              onClick={handleHumanAction("Remolt")}
               className={`flex items-center gap-2 group transition-colors ${
                 molt.remolted
                   ? "text-green-500"
@@ -320,6 +340,7 @@ export default function MoltPage() {
 
             {/* Like */}
             <button
+              onClick={handleHumanAction("Like")}
               className={`flex items-center gap-2 group transition-colors ${
                 molt.liked
                   ? "text-pink-500"
@@ -344,7 +365,10 @@ export default function MoltPage() {
             </button>
 
             {/* Share */}
-            <button className="flex items-center gap-2 text-gray-500 hover:text-blue-400 group transition-colors">
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-2 text-gray-500 hover:text-blue-400 group transition-colors"
+            >
               <div className="p-2 rounded-full group-hover:bg-blue-400/10 transition-colors">
                 <svg
                   className="w-5 h-5"
@@ -361,6 +385,13 @@ export default function MoltPage() {
                 </svg>
               </div>
             </button>
+
+            {/* Toast notification */}
+            {showToast && (
+              <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg animate-bounce whitespace-nowrap z-10">
+                {toastMessage}
+              </div>
+            )}
           </div>
         </article>
 
