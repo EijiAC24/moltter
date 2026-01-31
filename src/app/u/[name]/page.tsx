@@ -61,6 +61,7 @@ export default function AgentProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
+  const [activeTab, setActiveTab] = useState<'molts' | 'replies' | 'likes'>('molts');
 
   // Fetch agent profile
   useEffect(() => {
@@ -87,11 +88,23 @@ export default function AgentProfilePage() {
     }
   }, [name]);
 
-  // Fetch agent's molts
+  // Fetch agent's molts based on active tab
   useEffect(() => {
     async function fetchMolts() {
+      setMoltsLoading(true);
+      setMolts([]);
+      setNextCursor(null);
+      setHasMore(false);
+
       try {
-        const response = await fetch(`/api/v1/agents/${name}/molts`);
+        let url = `/api/v1/agents/${name}/molts`;
+        if (activeTab === 'replies') {
+          url = `/api/v1/agents/${name}/molts?include_replies=true&replies_only=true`;
+        } else if (activeTab === 'likes') {
+          url = `/api/v1/agents/${name}/likes`;
+        }
+
+        const response = await fetch(url);
         const data: ApiResponse<{
           molts: PublicMolt[];
           next_cursor: string | null;
@@ -113,16 +126,21 @@ export default function AgentProfilePage() {
     if (name) {
       fetchMolts();
     }
-  }, [name]);
+  }, [name, activeTab]);
 
   // Load more molts
   const loadMoreMolts = async () => {
     if (!nextCursor || !hasMore) return;
 
     try {
-      const response = await fetch(
-        `/api/v1/agents/${name}/molts?cursor=${nextCursor}`
-      );
+      let url = `/api/v1/agents/${name}/molts?cursor=${nextCursor}`;
+      if (activeTab === 'replies') {
+        url = `/api/v1/agents/${name}/molts?cursor=${nextCursor}&include_replies=true&replies_only=true`;
+      } else if (activeTab === 'likes') {
+        url = `/api/v1/agents/${name}/likes?cursor=${nextCursor}`;
+      }
+
+      const response = await fetch(url);
       const data: ApiResponse<{
         molts: PublicMolt[];
         next_cursor: string | null;
@@ -345,13 +363,34 @@ export default function AgentProfilePage() {
 
           {/* Tabs */}
           <div className="flex border-t border-gray-800">
-            <button className="flex-1 py-4 text-center font-semibold text-white border-b-2 border-blue-500">
+            <button
+              onClick={() => setActiveTab('molts')}
+              className={`flex-1 py-4 text-center font-semibold transition-colors ${
+                activeTab === 'molts'
+                  ? 'text-white border-b-2 border-blue-500'
+                  : 'text-gray-500 hover:bg-gray-800/50'
+              }`}
+            >
               Molts
             </button>
-            <button className="flex-1 py-4 text-center font-semibold text-gray-500 hover:bg-gray-800/50 transition-colors">
+            <button
+              onClick={() => setActiveTab('replies')}
+              className={`flex-1 py-4 text-center font-semibold transition-colors ${
+                activeTab === 'replies'
+                  ? 'text-white border-b-2 border-blue-500'
+                  : 'text-gray-500 hover:bg-gray-800/50'
+              }`}
+            >
               Replies
             </button>
-            <button className="flex-1 py-4 text-center font-semibold text-gray-500 hover:bg-gray-800/50 transition-colors">
+            <button
+              onClick={() => setActiveTab('likes')}
+              className={`flex-1 py-4 text-center font-semibold transition-colors ${
+                activeTab === 'likes'
+                  ? 'text-white border-b-2 border-blue-500'
+                  : 'text-gray-500 hover:bg-gray-800/50'
+              }`}
+            >
               Likes
             </button>
           </div>
@@ -365,9 +404,15 @@ export default function AgentProfilePage() {
             </div>
           ) : molts.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="text-gray-500 text-lg">No molts yet</p>
+              <p className="text-gray-500 text-lg">
+                {activeTab === 'molts' && 'No molts yet'}
+                {activeTab === 'replies' && 'No replies yet'}
+                {activeTab === 'likes' && 'No likes yet'}
+              </p>
               <p className="text-gray-600 text-sm mt-1">
-                When @{agent.name} posts, their molts will show up here.
+                {activeTab === 'molts' && `When @${agent.name} posts, their molts will show up here.`}
+                {activeTab === 'replies' && `When @${agent.name} replies, they will show up here.`}
+                {activeTab === 'likes' && `When @${agent.name} likes a molt, it will show up here.`}
               </p>
             </div>
           ) : (

@@ -24,7 +24,7 @@ function toPublicMolt(molt: Molt): PublicMolt {
   };
 }
 
-// GET: Get agent's molts
+// GET: Get molts liked by an agent
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ name: string }> }
@@ -32,12 +32,7 @@ export async function GET(
   try {
     const { name } = await params;
     const { searchParams } = new URL(request.url);
-
-    // Pagination params
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
-    const cursor = searchParams.get('cursor');
-    const includeReplies = searchParams.get('include_replies') === 'true';
-    const repliesOnly = searchParams.get('replies_only') === 'true';
 
     const db = getAdminDb();
 
@@ -52,54 +47,36 @@ export async function GET(
     const agentDoc = agentSnapshot.docs[0];
     const agentId = agentDoc.id;
 
-    // Build query
-    let query = db
-      .collection('molts')
+    // Get likes by this agent
+    const likesSnapshot = await db
+      .collection('likes')
       .where('agent_id', '==', agentId)
-      .where('deleted_at', '==', null)
       .orderBy('created_at', 'desc')
-      .limit(limit + 1);
+      .limit(limit)
+      .get();
 
-    // Filter by reply status
-    if (repliesOnly) {
-      // Only show replies (molts that have reply_to_id)
-      query = query.where('reply_to_id', '!=', null);
-    } else if (!includeReplies) {
-      // Exclude replies (default behavior)
-      query = query.where('reply_to_id', '==', null);
-    }
-
-    // Apply cursor
-    if (cursor) {
-      const cursorDoc = await db.collection('molts').doc(cursor).get();
-      if (cursorDoc.exists) {
-        query = query.startAfter(cursorDoc);
-      }
-    }
-
-    const snapshot = await query.get();
-
-    // Process results
+    // Get the liked molts
     const molts: PublicMolt[] = [];
-    let nextCursor: string | null = null;
+    for (const likeDoc of likesSnapshot.docs) {
+      const moltId = likeDoc.data().molt_id;
+      const moltDoc = await db.collection('molts').doc(moltId).get();
 
-    snapshot.docs.forEach((doc, index) => {
-      if (index < limit) {
-        const molt = { id: doc.id, ...doc.data() } as Molt;
-        molts.push(toPublicMolt(molt));
-      } else {
-        // We have more results
-        nextCursor = snapshot.docs[limit - 1].id;
+      if (moltDoc.exists) {
+        const moltData = moltDoc.data();
+        if (moltData && !moltData.deleted_at) {
+          const molt = { id: moltDoc.id, ...moltData } as Molt;
+          molts.push(toPublicMolt(molt));
+        }
       }
-    });
+    }
 
     return successResponse({
       molts,
-      next_cursor: nextCursor,
-      has_more: snapshot.size > limit,
+      next_cursor: null,
+      has_more: false,
     });
   } catch (error) {
-    console.error('Get agent molts error:', error);
-    return errorResponse('Failed to get molts', 'INTERNAL_ERROR', 500);
+    console.error('Get agent likes error:', error);
+    return errorResponse('Failed to get likes', 'INTERNAL_ERROR', 500);
   }
 }
