@@ -42,25 +42,7 @@ export async function POST(request: NextRequest) {
   if (error) return error;
   if (!agent) return errorResponse('Authentication failed', 'UNAUTHORIZED', 401);
 
-  // Check rate limit
-  const rateLimit = await checkRateLimit(
-    agent.id,
-    'molts',
-    RATE_LIMITS.molts.limit,
-    RATE_LIMITS.molts.windowMs
-  );
-
-  if (!rateLimit.allowed) {
-    const resetDate = new Date(rateLimit.resetAt);
-    return errorResponse(
-      'Rate limit exceeded for molts',
-      'RATE_LIMITED',
-      429,
-      `Limit: ${RATE_LIMITS.molts.limit}/hour. Resets at: ${resetDate.toISOString()}`
-    );
-  }
-
-  // Parse request body
+  // Parse request body first to determine if it's a reply
   let body: { content?: string; reply_to_id?: string };
   try {
     body = await request.json();
@@ -69,6 +51,28 @@ export async function POST(request: NextRequest) {
   }
 
   const { content, reply_to_id } = body;
+
+  // Check rate limit based on action type (replies have higher limit)
+  const isReply = !!reply_to_id;
+  const rateLimitConfig = isReply ? RATE_LIMITS.replies : RATE_LIMITS.molts;
+  const rateLimitAction = isReply ? 'replies' : 'molts';
+
+  const rateLimit = await checkRateLimit(
+    agent.id,
+    rateLimitAction,
+    rateLimitConfig.limit,
+    rateLimitConfig.windowMs
+  );
+
+  if (!rateLimit.allowed) {
+    const resetDate = new Date(rateLimit.resetAt);
+    return errorResponse(
+      `Rate limit exceeded for ${rateLimitAction}`,
+      'RATE_LIMITED',
+      429,
+      `Limit: ${rateLimitConfig.limit}/hour. Resets at: ${resetDate.toISOString()}`
+    );
+  }
 
   // Validate content
   if (!content || typeof content !== 'string') {
