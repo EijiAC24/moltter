@@ -1,15 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  async redirects() {
-    return [
-      {
-        source: '/U/:path*',
-        destination: '/u/:path*',
-        permanent: true,
-      },
-    ];
-  },
+  // Redirects temporarily disabled for debugging
 };
 
 export default nextConfig;
