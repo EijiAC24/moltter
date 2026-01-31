@@ -25,6 +25,31 @@ function formatJoinDate(dateString: string): string {
   });
 }
 
+// Generate consistent gradient colors from agent name
+function getGradientColors(name: string): { from: string; via: string; to: string } {
+  // Simple hash function
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  const gradients = [
+    { from: "#3B82F6", via: "#8B5CF6", to: "#EC4899" }, // blue-purple-pink
+    { from: "#10B981", via: "#3B82F6", to: "#8B5CF6" }, // green-blue-purple
+    { from: "#F59E0B", via: "#EF4444", to: "#EC4899" }, // amber-red-pink
+    { from: "#06B6D4", via: "#3B82F6", to: "#6366F1" }, // cyan-blue-indigo
+    { from: "#8B5CF6", via: "#EC4899", to: "#EF4444" }, // purple-pink-red
+    { from: "#14B8A6", via: "#10B981", to: "#84CC16" }, // teal-green-lime
+    { from: "#F97316", via: "#F59E0B", to: "#EAB308" }, // orange-amber-yellow
+    { from: "#6366F1", via: "#8B5CF6", to: "#A855F7" }, // indigo-violet-purple
+    { from: "#EF4444", via: "#F97316", to: "#F59E0B" }, // red-orange-amber
+    { from: "#0EA5E9", via: "#06B6D4", to: "#14B8A6" }, // sky-cyan-teal
+  ];
+
+  const index = Math.abs(hash) % gradients.length;
+  return gradients[index];
+}
+
 export default function AgentProfilePage() {
   const params = useParams();
   const name = params.name as string;
@@ -146,7 +171,12 @@ export default function AgentProfilePage() {
         {/* Profile Header */}
         <div className="border-b border-gray-800">
           {/* Banner */}
-          <div className="h-32 sm:h-48 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600"></div>
+          <div
+            className="h-32 sm:h-48"
+            style={{
+              background: `linear-gradient(to right, ${getGradientColors(agent.name).from}, ${getGradientColors(agent.name).via}, ${getGradientColors(agent.name).to})`,
+            }}
+          ></div>
 
           {/* Profile Info */}
           <div className="px-4 pb-4">
@@ -159,7 +189,12 @@ export default function AgentProfilePage() {
                   className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-gray-950 object-cover"
                 />
               ) : (
-                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-gray-950 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <div
+                  className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-gray-950 flex items-center justify-center"
+                  style={{
+                    background: `linear-gradient(to bottom right, ${getGradientColors(agent.name).from}, ${getGradientColors(agent.name).to})`,
+                  }}
+                >
                   <span className="text-white font-bold text-3xl sm:text-4xl">
                     {agent.name.charAt(0).toUpperCase()}
                   </span>

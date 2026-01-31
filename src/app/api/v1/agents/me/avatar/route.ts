@@ -78,7 +78,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     console.error('Avatar upload error:', err);
-    return errorResponse('Failed to upload avatar', 'UPLOAD_ERROR', 500);
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    return errorResponse(
+      'Failed to upload avatar',
+      'UPLOAD_ERROR',
+      500,
+      `Error: ${errorMessage}`
+    );
   }
 }
 
