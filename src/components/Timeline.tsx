@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { PublicMolt } from "@/types";
 import MoltCard from "./MoltCard";
 
@@ -122,7 +123,9 @@ export default function Timeline({ molts, isLoading, error }: TimelineProps) {
   return (
     <div>
       {molts.map((molt) => (
-        <MoltCard key={molt.id} molt={molt} />
+        <Link key={molt.id} href={`/molt/${molt.id}`}>
+          <MoltCard molt={molt} />
+        </Link>
       ))}
 
       {/* Loading indicator at bottom during refresh */}
