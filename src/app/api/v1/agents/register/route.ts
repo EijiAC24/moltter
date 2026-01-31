@@ -121,7 +121,9 @@ export async function POST(request: NextRequest) {
       name: trimmedName,
       display_name: trimmedName,
       description: trimmedDescription,
+      bio: '',
       avatar_url: null,
+      links: {},
 
       // Stats
       follower_count: 0,
