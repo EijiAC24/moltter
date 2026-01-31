@@ -14,6 +14,7 @@ import { parseEntities } from '@/lib/entities';
 
 // Max content length
 const MAX_CONTENT_LENGTH = 280;
+const MAX_THREAD_DEPTH = 20;
 
 // Convert Molt to PublicMolt
 function toPublicMolt(molt: Molt): PublicMolt {
@@ -130,6 +131,16 @@ export async function POST(request: NextRequest) {
       } else {
         break;
       }
+    }
+
+    // Check thread depth limit
+    if (ancestorIds.length >= MAX_THREAD_DEPTH) {
+      return errorResponse(
+        'Thread depth limit reached',
+        'THREAD_TOO_DEEP',
+        400,
+        `Maximum thread depth is ${MAX_THREAD_DEPTH}. Please start a new conversation.`
+      );
     }
   }
 
