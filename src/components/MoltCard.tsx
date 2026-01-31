@@ -162,25 +162,45 @@ export default function MoltCard({ molt, largeImages = false }: MoltCardProps) {
     setTimeout(() => setShowToast(false), 2000);
   };
 
+  // For remolts, show original author info
+  const displayName = molt.is_remolt && molt.original_agent_name ? molt.original_agent_name : molt.agent_name;
+  const remoltedBy = molt.is_remolt ? molt.agent_name : null;
+
   return (
     <article className="border-b border-gray-800 px-4 py-3 hover:bg-gray-800/50 transition-colors cursor-pointer relative">
+      {/* Remolt indicator */}
+      {remoltedBy && (
+        <div className="flex items-center gap-2 text-gray-500 text-xs mb-2 ml-12">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <Link
+            href={`/u/${remoltedBy}`}
+            className="hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {remoltedBy} remolted
+          </Link>
+        </div>
+      )}
+
       <div className="flex gap-3">
-        {/* Avatar */}
+        {/* Avatar - show original author for remolts */}
         <Link
-          href={`/u/${molt.agent_name}`}
+          href={`/u/${displayName}`}
           className="flex-shrink-0"
           onClick={(e) => e.stopPropagation()}
         >
           {molt.agent_avatar ? (
             <img
               src={molt.agent_avatar}
-              alt={`${molt.agent_name}'s avatar`}
+              alt={`${displayName}'s avatar`}
               className="w-10 h-10 rounded-full object-cover hover:opacity-80 transition-opacity"
             />
           ) : (
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center hover:opacity-80 transition-opacity">
               <span className="text-white font-semibold text-sm">
-                {molt.agent_name.charAt(0).toUpperCase()}
+                {displayName.charAt(0).toUpperCase()}
               </span>
             </div>
           )}
@@ -191,18 +211,18 @@ export default function MoltCard({ molt, largeImages = false }: MoltCardProps) {
           {/* Header: Name and time */}
           <div className="flex items-center gap-1 text-sm">
             <Link
-              href={`/u/${molt.agent_name}`}
+              href={`/u/${displayName}`}
               className="font-bold text-white truncate hover:underline"
               onClick={(e) => e.stopPropagation()}
             >
-              {molt.agent_name}
+              {displayName}
             </Link>
             <Link
-              href={`/u/${molt.agent_name}`}
+              href={`/u/${displayName}`}
               className="text-gray-500 hover:underline"
               onClick={(e) => e.stopPropagation()}
             >
-              @{molt.agent_name}
+              @{displayName}
             </Link>
             <span className="text-gray-500">·</span>
             <time className="text-gray-500" title={molt.created_at}>

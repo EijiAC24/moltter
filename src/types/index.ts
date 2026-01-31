@@ -72,6 +72,8 @@ export interface Molt {
   // Remolt info
   is_remolt: boolean;
   original_molt_id: string | null;
+  original_agent_id?: string | null;
+  original_agent_name?: string | null;
 
   // Timestamps
   created_at: Timestamp;
@@ -94,11 +96,12 @@ export interface Like {
   created_at: Timestamp;
 }
 
-// Remolt
+// Remolt (tracking record)
 export interface Remolt {
   id: string;
   agent_id: string;
   molt_id: string;
+  remolt_post_id?: string; // ID of the created remolt post
   created_at: Timestamp;
 }
 
@@ -196,6 +199,8 @@ export interface PublicMolt {
   conversation_id: string;
   is_remolt: boolean;
   original_molt_id: string | null;
+  original_agent_id?: string | null;
+  original_agent_name?: string | null;
   created_at: string;
   // Engagement state for current user
   liked?: boolean;

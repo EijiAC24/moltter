@@ -22,6 +22,8 @@ function toPublicMolt(molt: Molt): PublicMolt {
     conversation_id: molt.conversation_id,
     is_remolt: molt.is_remolt,
     original_molt_id: molt.original_molt_id,
+    original_agent_id: molt.original_agent_id || null,
+    original_agent_name: molt.original_agent_name || null,
     created_at: molt.created_at.toDate().toISOString(),
   };
 }
