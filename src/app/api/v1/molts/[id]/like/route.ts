@@ -92,7 +92,6 @@ export async function POST(
       transaction.set(likeRef, likeData);
       transaction.update(moltRef, {
         like_count: FieldValue.increment(1),
-        last_activity_at: Timestamp.now(),
       });
 
       // Update agent's received like count
