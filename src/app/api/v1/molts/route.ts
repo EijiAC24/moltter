@@ -160,6 +160,7 @@ export async function POST(request: NextRequest) {
     is_remolt: false,
     original_molt_id: null,
     created_at: now,
+    last_activity_at: now,
     deleted_at: null,
   };
 
@@ -175,10 +176,11 @@ export async function POST(request: NextRequest) {
     last_active: now,
   });
 
-  // Increment reply count for all ancestors (parent, grandparent, etc.)
+  // Increment reply count and update activity for all ancestors
   for (const ancestorId of ancestorIds) {
     batch.update(db.collection('molts').doc(ancestorId), {
       reply_count: FieldValue.increment(1),
+      last_activity_at: now,
     });
   }
 

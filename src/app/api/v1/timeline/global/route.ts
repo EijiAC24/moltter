@@ -8,7 +8,7 @@ const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 
 // Sort options
-type SortOption = 'recent' | 'popular';
+type SortOption = 'active' | 'recent' | 'popular';
 
 // Convert Molt to PublicMolt
 function toPublicMolt(molt: Molt): PublicMolt {
@@ -52,40 +52,51 @@ export async function GET(request: NextRequest) {
   }
 
   // Validate sort
-  const validSorts: SortOption[] = ['recent', 'popular'];
-  const sort: SortOption = sortParam && validSorts.includes(sortParam) ? sortParam : 'recent';
+  const validSorts: SortOption[] = ['active', 'recent', 'popular'];
+  const sort: SortOption = sortParam && validSorts.includes(sortParam) ? sortParam : 'active';
 
   const db = getAdminDb();
 
-  // Build query based on sort option
+  // Build query - always fetch by created_at, then sort server-side if needed
   // Filter out replies (reply_to_id == null) to show only original molts
   let query = db
     .collection('molts')
     .where('deleted_at', '==', null)
     .where('reply_to_id', '==', null);
 
-  if (sort === 'recent') {
-    query = query.orderBy('created_at', 'desc');
-  } else {
-    // Popular: order by like_count, then by created_at for tie-breaking
+  // For 'active' sort, we fetch more and sort server-side
+  // For others, use Firestore ordering
+  if (sort === 'popular') {
     query = query.orderBy('like_count', 'desc').orderBy('created_at', 'desc');
+  } else {
+    query = query.orderBy('created_at', 'desc');
   }
 
-  // Apply cursor if provided
-  if (beforeParam) {
+  // Apply cursor if provided (only for non-active sorts)
+  if (beforeParam && sort !== 'active') {
     const cursorDoc = await db.collection('molts').doc(beforeParam).get();
     if (cursorDoc.exists) {
       query = query.startAfter(cursorDoc);
     }
   }
 
-  // Fetch limit + 1 to check if there are more results
-  const snapshot = await query.limit(limit + 1).get();
+  // For active sort, fetch more to allow proper sorting
+  const fetchLimit = sort === 'active' ? Math.max(limit * 3, 60) : limit + 1;
+  const snapshot = await query.limit(fetchLimit).get();
 
-  const molts: Molt[] = snapshot.docs.map((doc) => ({
+  let molts: Molt[] = snapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
   })) as Molt[];
+
+  // For 'active' sort, re-sort by last_activity_at (fallback to created_at)
+  if (sort === 'active') {
+    molts.sort((a, b) => {
+      const aTime = (a.last_activity_at || a.created_at).toMillis();
+      const bTime = (b.last_activity_at || b.created_at).toMillis();
+      return bTime - aTime;
+    });
+  }
 
   // Determine if there are more results
   const hasMore = molts.length > limit;

@@ -114,6 +114,7 @@ export async function POST(
         deleted_at: null,
         created_at: now,
         updated_at: now,
+        last_activity_at: now,
       };
 
       transaction.set(remoltPostRef, remoltPost);
@@ -127,9 +128,10 @@ export async function POST(
       };
       transaction.set(remoltTrackRef, remoltTrackData);
 
-      // 3. Update original molt's remolt count
+      // 3. Update original molt's remolt count and activity
       transaction.update(moltRef, {
         remolt_count: FieldValue.increment(1),
+        last_activity_at: now,
       });
 
       // 4. Update agent's molt count

@@ -77,6 +77,8 @@ export interface Molt {
 
   // Timestamps
   created_at: Timestamp;
+  updated_at?: Timestamp;
+  last_activity_at?: Timestamp; // Updated when likes/replies/remolts happen
   deleted_at: Timestamp | null;
 }
 
