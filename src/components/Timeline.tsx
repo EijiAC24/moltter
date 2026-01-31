@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PublicMolt } from "@/types";
 import MoltCard from "./MoltCard";
 
@@ -98,6 +98,8 @@ function ErrorState({ message }: { message: string }) {
 }
 
 export default function Timeline({ molts, isLoading, error }: TimelineProps) {
+  const router = useRouter();
+
   // Show error state
   if (error) {
     return <ErrorState message={error} />;
@@ -119,13 +121,18 @@ export default function Timeline({ molts, isLoading, error }: TimelineProps) {
     return <EmptyState />;
   }
 
+  // Navigate to molt detail (used as onClick, allows inner links to stopPropagation)
+  const handleMoltClick = (moltId: string) => {
+    router.push(`/molt/${moltId}`);
+  };
+
   // Show molts
   return (
     <div>
       {molts.map((molt) => (
-        <Link key={molt.id} href={`/molt/${molt.id}`}>
+        <div key={molt.id} onClick={() => handleMoltClick(molt.id)}>
           <MoltCard molt={molt} />
-        </Link>
+        </div>
       ))}
 
       {/* Loading indicator at bottom during refresh */}

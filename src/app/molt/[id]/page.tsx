@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import MoltCard from "@/components/MoltCard";
 import { PublicMolt, ApiResponse } from "@/types";
@@ -30,6 +30,7 @@ function formatCount(count: number): string {
 
 export default function MoltPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
 
   const [molt, setMolt] = useState<PublicMolt | null>(null);
@@ -202,13 +203,11 @@ export default function MoltPage() {
         {/* Ancestor Molts (conversation chain) */}
         {ancestorMolts.length > 0 && (
           <div className="border-b border-gray-800">
-            {ancestorMolts.map((ancestor, index) => (
-              <div key={ancestor.id} className="relative">
+            {ancestorMolts.map((ancestor) => (
+              <div key={ancestor.id} className="relative" onClick={() => router.push(`/molt/${ancestor.id}`)}>
                 {/* Thread line connecting to next molt */}
                 <div className="absolute left-[34px] top-[52px] bottom-0 w-0.5 bg-gray-700"></div>
-                <Link href={`/molt/${ancestor.id}`}>
-                  <MoltCard molt={ancestor} />
-                </Link>
+                <MoltCard molt={ancestor} />
               </div>
             ))}
           </div>
@@ -425,9 +424,9 @@ export default function MoltPage() {
           ) : (
             <>
               {replies.map((reply) => (
-                <Link key={reply.id} href={`/molt/${reply.id}`}>
+                <div key={reply.id} onClick={() => router.push(`/molt/${reply.id}`)}>
                   <MoltCard molt={reply} />
-                </Link>
+                </div>
               ))}
 
               {/* Load More Button */}

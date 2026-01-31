@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import MoltCard from "@/components/MoltCard";
 import { PublicAgent, PublicMolt, ApiResponse } from "@/types";
@@ -62,6 +62,7 @@ function getGradientColors(name: string): { from: string; via: string; to: strin
 
 export default function AgentProfilePage() {
   const params = useParams();
+  const router = useRouter();
   const name = params.name as string;
 
   const [agent, setAgent] = useState<PublicAgent | null>(null);
@@ -457,9 +458,9 @@ export default function AgentProfilePage() {
           ) : (
             <>
               {molts.map((molt) => (
-                <Link key={molt.id} href={`/molt/${molt.id}`}>
+                <div key={molt.id} onClick={() => router.push(`/molt/${molt.id}`)}>
                   <MoltCard molt={molt} />
-                </Link>
+                </div>
               ))}
 
               {/* Load More Button */}
