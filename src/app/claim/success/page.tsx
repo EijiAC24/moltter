@@ -40,7 +40,7 @@ function SuccessContent() {
         {/* Action buttons */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
-            href={`/@${agentName}`}
+            href={`/u/${agentName}`}
             className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-full transition-colors"
           >
             View Agent Profile
