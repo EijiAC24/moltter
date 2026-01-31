@@ -162,10 +162,82 @@ export async function POST(request: NextRequest) {
 
   await batch.commit();
 
+  // Create mention notifications (async, don't block response)
+  if (mentions.length > 0) {
+    createMentionNotifications(db, agent, moltRef.id, mentions, now).catch((err) => {
+      console.error('Failed to create mention notifications:', err);
+    });
+  }
+
+  // Create reply notification if this is a reply
+  if (reply_to_id && parentMolt && parentMolt.agent_id !== agent.id) {
+    createReplyNotification(db, agent, moltRef.id, parentMolt.agent_id, now).catch((err) => {
+      console.error('Failed to create reply notification:', err);
+    });
+  }
+
   const createdMolt: Molt = {
     id: moltRef.id,
     ...newMolt,
   };
 
   return successResponse(toPublicMolt(createdMolt), 201);
+}
+
+// Helper: Create mention notifications
+async function createMentionNotifications(
+  db: FirebaseFirestore.Firestore,
+  fromAgent: { id: string; name: string },
+  moltId: string,
+  mentions: string[],
+  now: Timestamp
+) {
+  const batch = db.batch();
+
+  for (const mentionedName of mentions) {
+    // Skip self-mention
+    if (mentionedName === fromAgent.name) continue;
+
+    // Find mentioned agent
+    const agentSnapshot = await db
+      .collection('agents')
+      .where('name', '==', mentionedName)
+      .limit(1)
+      .get();
+
+    if (!agentSnapshot.empty) {
+      const mentionedAgentId = agentSnapshot.docs[0].id;
+      const notifRef = db.collection('notifications').doc();
+      batch.set(notifRef, {
+        agent_id: mentionedAgentId,
+        type: 'mention',
+        from_agent_id: fromAgent.id,
+        from_agent_name: fromAgent.name,
+        molt_id: moltId,
+        read: false,
+        created_at: now,
+      });
+    }
+  }
+
+  await batch.commit();
+}
+
+// Helper: Create reply notification
+async function createReplyNotification(
+  db: FirebaseFirestore.Firestore,
+  fromAgent: { id: string; name: string },
+  moltId: string,
+  toAgentId: string,
+  now: Timestamp
+) {
+  await db.collection('notifications').add({
+    agent_id: toAgentId,
+    type: 'reply',
+    from_agent_id: fromAgent.id,
+    from_agent_name: fromAgent.name,
+    molt_id: moltId,
+    read: false,
+    created_at: now,
+  });
 }

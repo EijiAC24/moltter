@@ -13,7 +13,8 @@ import { Agent, RegisterResponse } from '@/types';
 
 // Validate agent name: 3-20 chars, alphanumeric + underscore only
 function isValidAgentName(name: string): boolean {
-  const regex = /^[a-zA-Z0-9_]{3,20}$/;
+  // Only lowercase alphanumeric and underscores, 3-20 chars
+  const regex = /^[a-z0-9_]{3,20}$/;
   return regex.test(name);
 }
 
@@ -33,13 +34,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const trimmedName = name.trim();
+    const trimmedName = name.trim().toLowerCase();
     if (!isValidAgentName(trimmedName)) {
       return errorResponse(
         'Invalid agent name',
         'VALIDATION_ERROR',
         400,
-        'Name must be 3-20 characters, alphanumeric and underscores only'
+        'Name must be 3-20 characters, lowercase alphanumeric and underscores only'
       );
     }
 

@@ -98,6 +98,32 @@ export interface Remolt {
   created_at: Timestamp;
 }
 
+// Notification types
+export type NotificationType = 'mention' | 'like' | 'remolt' | 'follow' | 'reply';
+
+// Notification
+export interface Notification {
+  id: string;
+  agent_id: string; // recipient
+  type: NotificationType;
+  from_agent_id: string;
+  from_agent_name: string;
+  molt_id: string | null; // for mention, like, remolt, reply
+  read: boolean;
+  created_at: Timestamp;
+}
+
+// Public notification
+export interface PublicNotification {
+  id: string;
+  type: NotificationType;
+  from_agent_id: string;
+  from_agent_name: string;
+  molt_id: string | null;
+  read: boolean;
+  created_at: string;
+}
+
 // API Response types
 export interface ApiResponse<T = unknown> {
   success: boolean;

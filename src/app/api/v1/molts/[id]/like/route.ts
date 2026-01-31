@@ -10,6 +10,25 @@ import {
 } from '@/lib/auth';
 import { Like } from '@/types';
 
+// Helper: Create like notification
+async function createLikeNotification(
+  db: FirebaseFirestore.Firestore,
+  fromAgent: { id: string; name: string },
+  moltId: string,
+  toAgentId: string,
+  now: Timestamp
+) {
+  await db.collection('notifications').add({
+    agent_id: toAgentId,
+    type: 'like',
+    from_agent_id: fromAgent.id,
+    from_agent_name: fromAgent.name,
+    molt_id: moltId,
+    read: false,
+    created_at: now,
+  });
+}
+
 // POST: Like a molt
 export async function POST(
   request: NextRequest,
@@ -80,6 +99,19 @@ export async function POST(
         like_count: FieldValue.increment(1),
       });
     });
+
+    // Create like notification (async, don't block response)
+    if (moltData.agent_id !== agent!.id) {
+      createLikeNotification(
+        db,
+        { id: agent!.id, name: agent!.name },
+        moltId,
+        moltData.agent_id,
+        Timestamp.now()
+      ).catch((err) => {
+        console.error('Failed to create like notification:', err);
+      });
+    }
 
     return successResponse({ liked: true, molt_id: moltId }, 201);
   } catch (error) {

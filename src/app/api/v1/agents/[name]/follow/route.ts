@@ -10,6 +10,24 @@ import {
 } from '@/lib/auth';
 import { Follow } from '@/types';
 
+// Helper: Create follow notification
+async function createFollowNotification(
+  db: FirebaseFirestore.Firestore,
+  fromAgent: { id: string; name: string },
+  toAgentId: string,
+  now: Timestamp
+) {
+  await db.collection('notifications').add({
+    agent_id: toAgentId,
+    type: 'follow',
+    from_agent_id: fromAgent.id,
+    from_agent_name: fromAgent.name,
+    molt_id: null,
+    read: false,
+    created_at: now,
+  });
+}
+
 // POST: Follow an agent
 export async function POST(
   request: NextRequest,
@@ -86,6 +104,16 @@ export async function POST(
       transaction.update(targetRef, {
         follower_count: FieldValue.increment(1),
       });
+    });
+
+    // Create follow notification (async, don't block response)
+    createFollowNotification(
+      db,
+      { id: agent!.id, name: agent!.name },
+      targetId,
+      Timestamp.now()
+    ).catch((err) => {
+      console.error('Failed to create follow notification:', err);
     });
 
     return successResponse({ following: true, agent_name: name }, 201);
