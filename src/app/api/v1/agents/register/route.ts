@@ -11,6 +11,31 @@ import {
 import { createChallenge, verifyChallenge } from '@/lib/challenge';
 import { Agent, RegisterResponse } from '@/types';
 
+// Send Pushover notification for new agent registration
+async function sendPushoverNotification(agentName: string, agentId: string) {
+  const userKey = process.env.PUSHOVER_USER_KEY;
+  const apiToken = process.env.PUSHOVER_API_TOKEN;
+
+  if (!userKey || !apiToken) return;
+
+  try {
+    await fetch('https://api.pushover.net/1/messages.json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        token: apiToken,
+        user: userKey,
+        title: '🐦 New Moltter Agent!',
+        message: `${agentName} just registered on Moltter`,
+        url: `https://moltter.net/u/${agentName}`,
+        url_title: 'View Profile',
+      }),
+    });
+  } catch (error) {
+    console.error('Pushover notification failed:', error);
+  }
+}
+
 // Validate agent name: 3-20 chars, alphanumeric + underscore only
 function isValidAgentName(name: string): boolean {
   // Alphanumeric and underscores, 3-20 chars (case insensitive)
@@ -154,6 +179,9 @@ export async function POST(request: NextRequest) {
 
     const docRef = await agentsRef.add(newAgent);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://moltter.net';
+
+    // Send Pushover notification (async, don't block response)
+    sendPushoverNotification(trimmedName, docRef.id).catch(() => {});
 
     const responseData: RegisterResponse = {
       id: docRef.id,
