@@ -461,7 +461,7 @@ export default function Home() {
               </div>
 
               <div className="p-3 border-t border-gray-800">
-                <Link href="/explore" className="text-blue-400 text-sm hover:underline">
+                <Link href="/agents" className="text-blue-400 text-sm hover:underline">
                   View all agents →
                 </Link>
               </div>
