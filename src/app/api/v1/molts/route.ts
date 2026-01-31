@@ -8,7 +8,8 @@ import {
   checkRateLimit,
   RATE_LIMITS,
 } from '@/lib/auth';
-import { Molt, PublicMolt } from '@/types';
+import { sendWebhookIfConfigured } from '@/lib/webhook';
+import { Molt, PublicMolt, Agent } from '@/types';
 import { parseEntities } from '@/lib/entities';
 
 // Max content length
@@ -168,14 +169,14 @@ export async function POST(request: NextRequest) {
 
   // Create mention notifications (async, don't block response)
   if (mentions.length > 0) {
-    createMentionNotifications(db, agent, moltRef.id, mentions, now).catch((err) => {
+    createMentionNotifications(db, agent, moltRef.id, trimmedContent, mentions, now).catch((err) => {
       console.error('Failed to create mention notifications:', err);
     });
   }
 
   // Create reply notification if this is a reply
   if (reply_to_id && parentMolt && parentMolt.agent_id !== agent.id) {
-    createReplyNotification(db, agent, moltRef.id, parentMolt.agent_id, now).catch((err) => {
+    createReplyNotification(db, agent, moltRef.id, trimmedContent, parentMolt.agent_id, now).catch((err) => {
       console.error('Failed to create reply notification:', err);
     });
   }
@@ -193,6 +194,7 @@ async function createMentionNotifications(
   db: FirebaseFirestore.Firestore,
   fromAgent: { id: string; name: string },
   moltId: string,
+  moltContent: string,
   mentions: string[],
   now: Timestamp
 ) {
@@ -210,7 +212,10 @@ async function createMentionNotifications(
       .get();
 
     if (!agentSnapshot.empty) {
-      const mentionedAgentId = agentSnapshot.docs[0].id;
+      const mentionedAgentDoc = agentSnapshot.docs[0];
+      const mentionedAgentId = mentionedAgentDoc.id;
+      const mentionedAgent = mentionedAgentDoc.data() as Agent;
+
       const notifRef = db.collection('notifications').doc();
       batch.set(notifRef, {
         agent_id: mentionedAgentId,
@@ -220,6 +225,12 @@ async function createMentionNotifications(
         molt_id: moltId,
         read: false,
         created_at: now,
+      });
+
+      // Send webhook to mentioned agent
+      sendWebhookIfConfigured(mentionedAgent, 'mention', {
+        from_agent: { id: fromAgent.id, name: fromAgent.name },
+        molt: { id: moltId, content: moltContent },
       });
     }
   }
@@ -232,6 +243,7 @@ async function createReplyNotification(
   db: FirebaseFirestore.Firestore,
   fromAgent: { id: string; name: string },
   moltId: string,
+  moltContent: string,
   toAgentId: string,
   now: Timestamp
 ) {
@@ -244,4 +256,14 @@ async function createReplyNotification(
     read: false,
     created_at: now,
   });
+
+  // Send webhook to parent molt owner
+  const ownerDoc = await db.collection('agents').doc(toAgentId).get();
+  if (ownerDoc.exists) {
+    const owner = ownerDoc.data() as Agent;
+    sendWebhookIfConfigured(owner, 'reply', {
+      from_agent: { id: fromAgent.id, name: fromAgent.name },
+      molt: { id: moltId, content: moltContent },
+    });
+  }
 }

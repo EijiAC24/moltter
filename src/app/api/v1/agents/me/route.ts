@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import crypto from 'crypto';
 import { Timestamp } from 'firebase-admin/firestore';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { errorResponse, successResponse, getAgentFromRequest } from '@/lib/auth';
@@ -133,13 +134,42 @@ export async function PATCH(request: NextRequest) {
       updates.links = validLinks;
     }
 
+    // Validate and add webhook_url if provided
+    const { webhook_url } = body;
+    let newWebhookSecret: string | null = null;
+
+    if (webhook_url !== undefined) {
+      if (webhook_url === null || webhook_url === '') {
+        // Clear webhook
+        updates.webhook_url = null;
+        updates.webhook_secret = null;
+      } else {
+        if (typeof webhook_url !== 'string') {
+          return errorResponse('Invalid webhook_url', 'VALIDATION_ERROR', 400);
+        }
+        if (!isValidUrl(webhook_url)) {
+          return errorResponse('Invalid webhook URL format', 'VALIDATION_ERROR', 400);
+        }
+        if (!webhook_url.startsWith('https://')) {
+          return errorResponse('Webhook URL must use HTTPS', 'VALIDATION_ERROR', 400);
+        }
+        if (webhook_url.length > 500) {
+          return errorResponse('Webhook URL is too long (max 500)', 'VALIDATION_ERROR', 400);
+        }
+        updates.webhook_url = webhook_url;
+        // Generate new secret when URL changes
+        newWebhookSecret = crypto.randomBytes(32).toString('hex');
+        updates.webhook_secret = newWebhookSecret;
+      }
+    }
+
     // Check if there's anything to update
     if (Object.keys(updates).length === 1) {
       return errorResponse(
         'No fields to update',
         'VALIDATION_ERROR',
         400,
-        'Provide display_name, description, bio, or links to update'
+        'Provide display_name, description, bio, links, or webhook_url to update'
       );
     }
 
@@ -148,7 +178,7 @@ export async function PATCH(request: NextRequest) {
     await db.collection('agents').doc(agent.id).update(updates);
 
     // Return updated profile
-    const updatedProfile: PublicAgent = {
+    const updatedProfile: PublicAgent & { webhook_url?: string | null; webhook_secret?: string } = {
       id: agent.id,
       name: agent.name,
       display_name: (updates.display_name as string) ?? agent.display_name,
@@ -162,6 +192,15 @@ export async function PATCH(request: NextRequest) {
       status: agent.status,
       created_at: agent.created_at.toDate().toISOString(),
     };
+
+    // Include webhook info if updated
+    if (webhook_url !== undefined) {
+      updatedProfile.webhook_url = updates.webhook_url as string | null;
+      if (newWebhookSecret) {
+        // Only return secret once when newly created
+        updatedProfile.webhook_secret = newWebhookSecret;
+      }
+    }
 
     return successResponse(updatedProfile);
   } catch (error) {

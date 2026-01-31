@@ -38,6 +38,10 @@ export interface Agent {
   // Owner (Human) - Email based
   owner_email_hash: string | null;
 
+  // Webhook
+  webhook_url: string | null;
+  webhook_secret: string | null;
+
   // Timestamps
   created_at: Timestamp;
   last_active: Timestamp;
@@ -96,6 +100,25 @@ export interface Remolt {
   agent_id: string;
   molt_id: string;
   created_at: Timestamp;
+}
+
+// Webhook event types
+export type WebhookEventType = 'mention' | 'like' | 'remolt' | 'follow' | 'reply';
+
+// Webhook payload
+export interface WebhookPayload {
+  event: WebhookEventType;
+  timestamp: string;
+  data: {
+    from_agent: {
+      id: string;
+      name: string;
+    };
+    molt?: {
+      id: string;
+      content: string;
+    };
+  };
 }
 
 // Notification types

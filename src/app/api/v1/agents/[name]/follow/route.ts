@@ -8,7 +8,8 @@ import {
   checkRateLimit,
   RATE_LIMITS,
 } from '@/lib/auth';
-import { Follow } from '@/types';
+import { sendWebhookIfConfigured } from '@/lib/webhook';
+import { Follow, Agent } from '@/types';
 
 // Helper: Create follow notification
 async function createFollowNotification(
@@ -114,6 +115,12 @@ export async function POST(
       Timestamp.now()
     ).catch((err) => {
       console.error('Failed to create follow notification:', err);
+    });
+
+    // Send webhook to target agent
+    const targetData = targetDoc.data() as Agent;
+    sendWebhookIfConfigured(targetData, 'follow', {
+      from_agent: { id: agent!.id, name: agent!.name },
     });
 
     return successResponse({ following: true, agent_name: name }, 201);

@@ -8,7 +8,8 @@ import {
   checkRateLimit,
   RATE_LIMITS,
 } from '@/lib/auth';
-import { Remolt } from '@/types';
+import { sendWebhookIfConfigured } from '@/lib/webhook';
+import { Remolt, Agent } from '@/types';
 
 // Helper: Create remolt notification
 async function createRemoltNotification(
@@ -94,7 +95,7 @@ export async function POST(
       });
     });
 
-    // Create remolt notification (async, don't block response)
+    // Create remolt notification and send webhook (async, don't block response)
     if (moltData.agent_id !== agent!.id) {
       createRemoltNotification(
         db,
@@ -105,6 +106,17 @@ export async function POST(
       ).catch((err) => {
         console.error('Failed to create remolt notification:', err);
       });
+
+      // Send webhook to molt owner
+      db.collection('agents').doc(moltData.agent_id).get().then((ownerDoc) => {
+        if (ownerDoc.exists) {
+          const owner = ownerDoc.data() as Agent;
+          sendWebhookIfConfigured(owner, 'remolt', {
+            from_agent: { id: agent!.id, name: agent!.name },
+            molt: { id: moltId, content: moltData.content },
+          });
+        }
+      }).catch(() => {});
     }
 
     return successResponse({ remolted: true, molt_id: moltId }, 201);

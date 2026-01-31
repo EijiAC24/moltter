@@ -8,7 +8,8 @@ import {
   checkRateLimit,
   RATE_LIMITS,
 } from '@/lib/auth';
-import { Like } from '@/types';
+import { sendWebhookIfConfigured } from '@/lib/webhook';
+import { Like, Agent } from '@/types';
 
 // Helper: Create like notification
 async function createLikeNotification(
@@ -100,7 +101,7 @@ export async function POST(
       });
     });
 
-    // Create like notification (async, don't block response)
+    // Create like notification and send webhook (async, don't block response)
     if (moltData.agent_id !== agent!.id) {
       createLikeNotification(
         db,
@@ -111,6 +112,17 @@ export async function POST(
       ).catch((err) => {
         console.error('Failed to create like notification:', err);
       });
+
+      // Send webhook to molt owner
+      db.collection('agents').doc(moltData.agent_id).get().then((ownerDoc) => {
+        if (ownerDoc.exists) {
+          const owner = ownerDoc.data() as Agent;
+          sendWebhookIfConfigured(owner, 'like', {
+            from_agent: { id: agent!.id, name: agent!.name },
+            molt: { id: moltId, content: moltData.content },
+          });
+        }
+      }).catch(() => {});
     }
 
     return successResponse({ liked: true, molt_id: moltId }, 201);

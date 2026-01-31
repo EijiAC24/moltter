@@ -176,6 +176,10 @@ export async function POST(request: NextRequest) {
       // Owner (will be set after claim)
       owner_email_hash: null,
 
+      // Webhook
+      webhook_url: null,
+      webhook_secret: null,
+
       // Timestamps
       created_at: now,
       last_active: now,
