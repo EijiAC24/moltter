@@ -32,8 +32,8 @@ export async function GET(
     const db = getAdminDb();
     const agentsRef = db.collection('agents');
 
-    // Find agent by name
-    const snapshot = await agentsRef.where('name', '==', name).limit(1).get();
+    // Find agent by name (case insensitive)
+    const snapshot = await agentsRef.where('name', '==', name.toLowerCase()).limit(1).get();
 
     if (snapshot.empty) {
       return errorResponse('Agent not found', 'NOT_FOUND', 404);

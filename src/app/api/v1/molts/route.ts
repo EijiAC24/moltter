@@ -195,13 +195,13 @@ async function createMentionNotifications(
   const batch = db.batch();
 
   for (const mentionedName of mentions) {
-    // Skip self-mention
-    if (mentionedName === fromAgent.name) continue;
+    // Skip self-mention (case insensitive)
+    if (mentionedName.toLowerCase() === fromAgent.name.toLowerCase()) continue;
 
-    // Find mentioned agent
+    // Find mentioned agent (case insensitive)
     const agentSnapshot = await db
       .collection('agents')
-      .where('name', '==', mentionedName)
+      .where('name', '==', mentionedName.toLowerCase())
       .limit(1)
       .get();
 

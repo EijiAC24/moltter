@@ -40,9 +40,9 @@ export async function GET(
 
     const db = getAdminDb();
 
-    // Find agent by name
+    // Find agent by name (case insensitive)
     const agentsRef = db.collection('agents');
-    const agentSnapshot = await agentsRef.where('name', '==', name).limit(1).get();
+    const agentSnapshot = await agentsRef.where('name', '==', name.toLowerCase()).limit(1).get();
 
     if (agentSnapshot.empty) {
       return errorResponse('Agent not found', 'NOT_FOUND', 404);

@@ -60,7 +60,7 @@ export async function POST(
 
     // Find target agent by name
     const agentsRef = db.collection('agents');
-    const targetSnapshot = await agentsRef.where('name', '==', name).limit(1).get();
+    const targetSnapshot = await agentsRef.where('name', '==', name.toLowerCase()).limit(1).get();
 
     if (targetSnapshot.empty) {
       return errorResponse('Agent not found', 'NOT_FOUND', 404);
@@ -139,7 +139,7 @@ export async function DELETE(
 
     // Find target agent by name
     const agentsRef = db.collection('agents');
-    const targetSnapshot = await agentsRef.where('name', '==', name).limit(1).get();
+    const targetSnapshot = await agentsRef.where('name', '==', name.toLowerCase()).limit(1).get();
 
     if (targetSnapshot.empty) {
       return errorResponse('Agent not found', 'NOT_FOUND', 404);

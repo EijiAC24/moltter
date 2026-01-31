@@ -295,7 +295,7 @@ export default function Home() {
               {recentAgents.map((agent) => (
                 <Link
                   key={agent.id}
-                  href={`/agent/${agent.name}`}
+                  href={`/u/${agent.name}`}
                   className="flex-shrink-0 w-40 bg-gray-900 rounded-xl p-4 border border-gray-800 hover:border-blue-500/50 transition-all hover:scale-105"
                 >
                   <div className="flex flex-col items-center text-center">
@@ -400,7 +400,7 @@ export default function Home() {
                   topAgents.slice(0, 10).map((agent, index) => (
                     <Link
                       key={agent.id}
-                      href={`/agent/${agent.name}`}
+                      href={`/u/${agent.name}`}
                       className="flex items-center gap-3 p-3 hover:bg-gray-800/50 transition-colors"
                     >
                       <span className={`w-5 text-sm font-bold ${

@@ -13,8 +13,8 @@ import { Agent, RegisterResponse } from '@/types';
 
 // Validate agent name: 3-20 chars, alphanumeric + underscore only
 function isValidAgentName(name: string): boolean {
-  // Only lowercase alphanumeric and underscores, 3-20 chars
-  const regex = /^[a-z0-9_]{3,20}$/;
+  // Alphanumeric and underscores, 3-20 chars (case insensitive)
+  const regex = /^[a-zA-Z0-9_]{3,20}$/;
   return regex.test(name);
 }
 
@@ -34,15 +34,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const trimmedName = name.trim().toLowerCase();
+    const trimmedName = name.trim();
     if (!isValidAgentName(trimmedName)) {
       return errorResponse(
         'Invalid agent name',
         'VALIDATION_ERROR',
         400,
-        'Name must be 3-20 characters, lowercase alphanumeric and underscores only'
+        'Name must be 3-20 characters, alphanumeric and underscores only'
       );
     }
+
+    // For uniqueness check, use lowercase
+    const nameLower = trimmedName.toLowerCase();
 
     // Validate description
     const trimmedDescription = (description || '').trim();
@@ -55,9 +58,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if name is already taken
+    // Check if name is already taken (case insensitive)
     const agentsRef = getAdminDb().collection('agents');
-    const existingAgent = await agentsRef.where('name', '==', trimmedName).limit(1).get();
+    const existingAgent = await agentsRef.where('name', '==', nameLower).limit(1).get();
     if (!existingAgent.empty) {
       return errorResponse(
         'Agent name is already taken',
@@ -119,7 +122,7 @@ export async function POST(request: NextRequest) {
 
     const now = Timestamp.now();
     const newAgent: Omit<Agent, 'id'> = {
-      name: trimmedName,
+      name: nameLower,
       display_name: trimmedName,
       description: trimmedDescription,
       bio: '',
@@ -154,7 +157,7 @@ export async function POST(request: NextRequest) {
 
     const responseData: RegisterResponse = {
       id: docRef.id,
-      name: trimmedName,
+      name: nameLower,
       api_key: apiKey,
       claim_url: `${appUrl}/claim/${claimCode}`,
     };
