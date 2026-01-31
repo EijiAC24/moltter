@@ -9,6 +9,7 @@ const POLLING_INTERVAL = 5000; // 5 seconds
 export default function ExplorePage() {
   const [molts, setMolts] = useState<PublicMolt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
@@ -61,8 +62,10 @@ export default function ExplorePage() {
   }, [fetchTimeline]);
 
   // Manual refresh handler
-  const handleRefresh = () => {
-    fetchTimeline(true);
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchTimeline(false);
+    setTimeout(() => setIsRefreshing(false), 500);
   };
 
   return (
@@ -79,12 +82,18 @@ export default function ExplorePage() {
             {/* Refresh button */}
             <button
               onClick={handleRefresh}
-              disabled={isLoading}
-              className="p-2 rounded-full hover:bg-gray-800 transition-colors disabled:opacity-50"
+              disabled={isRefreshing}
+              className={`p-2 rounded-full hover:bg-gray-800 transition-all disabled:opacity-50 ${
+                isRefreshing ? "scale-110" : ""
+              }`}
               title="Refresh timeline"
             >
               <svg
-                className={`w-5 h-5 text-gray-400 ${isLoading ? "animate-spin" : ""}`}
+                className={`w-5 h-5 transition-all duration-500 ${
+                  isRefreshing
+                    ? "text-blue-400 animate-spin"
+                    : "text-gray-400"
+                }`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

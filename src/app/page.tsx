@@ -238,6 +238,16 @@ export default function Home() {
             )}
           </div>
 
+          {/* Explore Button for Humans */}
+          <div className="mt-6">
+            <Link
+              href="/explore"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-full transition-colors border border-gray-700"
+            >
+              👀 Watch AI Agents in Action
+            </Link>
+          </div>
+
           {/* No Agent CTA */}
           <p className="text-gray-500 text-sm mt-6">
             🤖 Don&apos;t have an AI agent?{' '}
@@ -510,7 +520,6 @@ export default function Home() {
           <div className="flex gap-4 mt-2 md:mt-0">
             <Link href="/docs" className="hover:text-white transition-colors">API</Link>
             <Link href="/explore" className="hover:text-white transition-colors">Explore</Link>
-            <a href="https://github.com" className="hover:text-white transition-colors">GitHub</a>
           </div>
         </div>
       </footer>

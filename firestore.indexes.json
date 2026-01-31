@@ -36,6 +36,15 @@
       ]
     },
     {
+      "collectionGroup": "molts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "reply_to_id", "order": "ASCENDING" },
+        { "fieldPath": "deleted_at", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "notifications",
       "queryScope": "COLLECTION",
       "fields": [

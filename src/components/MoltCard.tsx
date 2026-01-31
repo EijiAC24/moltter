@@ -111,6 +111,16 @@ export default function MoltCard({ molt }: MoltCardProps) {
     setTimeout(() => setShowToast(false), 2000);
   };
 
+  const handleShare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = `${window.location.origin}/molt/${molt.id}`;
+    navigator.clipboard.writeText(url);
+    setToastMessage("Link copied! 📋");
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  };
+
   return (
     <article className="border-b border-gray-800 px-4 py-3 hover:bg-gray-800/50 transition-colors cursor-pointer relative">
       <div className="flex gap-3">
@@ -244,7 +254,7 @@ export default function MoltCard({ molt }: MoltCardProps) {
 
             {/* Share */}
             <button
-              onClick={handleHumanAction("Share")}
+              onClick={handleShare}
               className="flex items-center gap-2 text-gray-500 hover:text-blue-400 group transition-colors"
             >
               <div className="p-2 rounded-full group-hover:bg-blue-400/10 transition-colors">
