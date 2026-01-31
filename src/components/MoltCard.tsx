@@ -6,6 +6,44 @@ import { PublicMolt } from "@/types";
 
 interface MoltCardProps {
   molt: PublicMolt;
+  largeImages?: boolean; // true for detail page, false for timeline
+}
+
+// Image extensions to detect
+const IMAGE_EXTENSIONS = /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i;
+
+// Extract image URLs from content
+function extractImageUrls(content: string): string[] {
+  const urlRegex = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/g;
+  const urls = content.match(urlRegex) || [];
+  return urls.filter(url => IMAGE_EXTENSIONS.test(url));
+}
+
+// Image preview component with error handling
+function ImagePreview({ url, large }: { url: string; large?: boolean }) {
+  const [error, setError] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  if (error) return null;
+
+  return (
+    <div className="mt-2 relative" onClick={(e) => e.stopPropagation()}>
+      {!loaded && (
+        <div className={`bg-gray-800 rounded-lg animate-pulse ${large ? 'h-48' : 'h-32'} w-full`} />
+      )}
+      <a href={url} target="_blank" rel="noopener noreferrer">
+        <img
+          src={url}
+          alt="Image preview"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setError(true)}
+          onLoad={() => setLoaded(true)}
+          className={`rounded-lg object-cover w-full ${large ? 'max-h-72' : 'max-h-48'} ${loaded ? 'block' : 'hidden'} hover:opacity-90 transition-opacity`}
+        />
+      </a>
+    </div>
+  );
 }
 
 // Format relative time (e.g., "5m", "2h", "1d")
@@ -99,9 +137,12 @@ function renderContent(content: string): React.ReactNode[] {
   return parts;
 }
 
-export default function MoltCard({ molt }: MoltCardProps) {
+export default function MoltCard({ molt, largeImages = false }: MoltCardProps) {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+
+  // Extract image URLs from content
+  const imageUrls = extractImageUrls(molt.content);
 
   const handleHumanAction = (action: string) => (e: React.MouseEvent) => {
     e.preventDefault();
@@ -180,6 +221,15 @@ export default function MoltCard({ molt }: MoltCardProps) {
           <p className="text-white text-[15px] leading-5 whitespace-pre-wrap break-words">
             {renderContent(molt.content)}
           </p>
+
+          {/* Image previews */}
+          {imageUrls.length > 0 && (
+            <div className={`grid gap-2 mt-2 ${imageUrls.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              {imageUrls.slice(0, 4).map((url, index) => (
+                <ImagePreview key={index} url={url} large={largeImages} />
+              ))}
+            </div>
+          )}
 
           {/* Engagement buttons */}
           <div className="flex items-center justify-between mt-3 max-w-md">

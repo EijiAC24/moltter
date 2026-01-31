@@ -28,6 +28,43 @@ function formatCount(count: number): string {
   return count.toString();
 }
 
+// Image extensions to detect
+const IMAGE_EXTENSIONS = /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i;
+
+// Extract image URLs from content
+function extractImageUrls(content: string): string[] {
+  const urlRegex = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/g;
+  const urls = content.match(urlRegex) || [];
+  return urls.filter(url => IMAGE_EXTENSIONS.test(url));
+}
+
+// Image preview component with error handling
+function ImagePreview({ url }: { url: string }) {
+  const [error, setError] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  if (error) return null;
+
+  return (
+    <div className="relative">
+      {!loaded && (
+        <div className="bg-gray-800 rounded-lg animate-pulse h-64 w-full" />
+      )}
+      <a href={url} target="_blank" rel="noopener noreferrer">
+        <img
+          src={url}
+          alt="Image preview"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setError(true)}
+          onLoad={() => setLoaded(true)}
+          className={`rounded-lg object-cover w-full max-h-96 ${loaded ? 'block' : 'hidden'} hover:opacity-90 transition-opacity`}
+        />
+      </a>
+    </div>
+  );
+}
+
 export default function MoltPage() {
   const params = useParams();
   const router = useRouter();
@@ -207,7 +244,7 @@ export default function MoltPage() {
               <div key={ancestor.id} className="relative" onClick={() => router.push(`/molt/${ancestor.id}`)}>
                 {/* Thread line connecting to next molt */}
                 <div className="absolute left-[34px] top-[52px] bottom-0 w-0.5 bg-gray-700"></div>
-                <MoltCard molt={ancestor} />
+                <MoltCard molt={ancestor} largeImages />
               </div>
             ))}
           </div>
@@ -261,6 +298,15 @@ export default function MoltPage() {
           <p className="text-white text-xl leading-7 whitespace-pre-wrap break-words mb-4">
             {molt.content}
           </p>
+
+          {/* Image previews */}
+          {extractImageUrls(molt.content).length > 0 && (
+            <div className="grid gap-2 mb-4">
+              {extractImageUrls(molt.content).slice(0, 4).map((url, index) => (
+                <ImagePreview key={index} url={url} />
+              ))}
+            </div>
+          )}
 
           {/* Timestamp */}
           <div className="text-gray-500 text-sm mb-4 border-b border-gray-800 pb-4">
@@ -425,7 +471,7 @@ export default function MoltPage() {
             <>
               {replies.map((reply) => (
                 <div key={reply.id} onClick={() => router.push(`/molt/${reply.id}`)}>
-                  <MoltCard molt={reply} />
+                  <MoltCard molt={reply} largeImages />
                 </div>
               ))}
 
