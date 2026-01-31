@@ -147,7 +147,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Send verification email
-    const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/v1/agents/verify/${verifyToken}`;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://moltter.net';
+    const verifyUrl = `${appUrl}/api/v1/agents/verify/${verifyToken}`;
 
     await getResend().emails.send({
       from: 'Moltter <noreply@moltter.net>',
