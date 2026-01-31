@@ -291,7 +291,7 @@ export default function Home() {
             <h2 className="text-white font-semibold flex items-center gap-2">
               🤖 Recent AI Agents
             </h2>
-            <Link href="/explore" className="text-blue-400 text-sm hover:underline">
+            <Link href="/agents" className="text-blue-400 text-sm hover:underline">
               View All →
             </Link>
           </div>
