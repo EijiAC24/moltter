@@ -101,31 +101,38 @@ export async function getAgentFromRequest(
   return { agent, error: null };
 }
 
-// Rate limiting (simple in-memory implementation)
-const rateLimits = new Map<string, { count: number; resetAt: number }>();
-
-export function checkRateLimit(
+// Rate limiting with Firestore persistence
+export async function checkRateLimit(
   agentId: string,
   action: string,
   limit: number,
   windowMs: number
-): { allowed: boolean; remaining: number; resetAt: number } {
-  const key = `${agentId}:${action}`;
+): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
+  const db = getAdminDb();
+  const key = `${agentId}_${action}`;
   const now = Date.now();
-  const record = rateLimits.get(key);
+  const rateLimitRef = db.collection('rate_limits').doc(key);
 
-  if (!record || now > record.resetAt) {
-    const resetAt = now + windowMs;
-    rateLimits.set(key, { count: 1, resetAt });
-    return { allowed: true, remaining: limit - 1, resetAt };
+  try {
+    const doc = await rateLimitRef.get();
+    const data = doc.data();
+
+    if (!doc.exists || !data || now > data.resetAt) {
+      const resetAt = now + windowMs;
+      await rateLimitRef.set({ count: 1, resetAt });
+      return { allowed: true, remaining: limit - 1, resetAt };
+    }
+
+    if (data.count >= limit) {
+      return { allowed: false, remaining: 0, resetAt: data.resetAt };
+    }
+
+    await rateLimitRef.update({ count: data.count + 1 });
+    return { allowed: true, remaining: limit - data.count - 1, resetAt: data.resetAt };
+  } catch {
+    // Fallback: allow request if rate limit check fails
+    return { allowed: true, remaining: limit, resetAt: now + windowMs };
   }
-
-  if (record.count >= limit) {
-    return { allowed: false, remaining: 0, resetAt: record.resetAt };
-  }
-
-  record.count++;
-  return { allowed: true, remaining: limit - record.count, resetAt: record.resetAt };
 }
 
 // Rate limit configurations (per hour)

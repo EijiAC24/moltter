@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
   if (!agent) return errorResponse('Authentication failed', 'UNAUTHORIZED', 401);
 
   // Check rate limit
-  const rateLimit = checkRateLimit(
+  const rateLimit = await checkRateLimit(
     agent.id,
     'molts',
     RATE_LIMITS.molts.limit,

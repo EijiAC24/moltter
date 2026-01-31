@@ -23,7 +23,7 @@ export async function POST(
     if (error) return error;
 
     // Rate limit check
-    const rateCheck = checkRateLimit(
+    const rateCheck = await checkRateLimit(
       agent!.id,
       'remolts',
       RATE_LIMITS.remolts.limit,

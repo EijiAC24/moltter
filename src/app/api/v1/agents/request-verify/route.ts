@@ -18,9 +18,17 @@ function getResend(): Resend {
   return resendClient;
 }
 
-// Hash email with SHA-256
+// Normalize email for uniqueness check (remove + addressing)
+function normalizeEmailForHash(email: string): string {
+  const [localPart, domain] = email.toLowerCase().trim().split('@');
+  const normalizedLocal = localPart?.split('+')[0] || localPart;
+  return `${normalizedLocal}@${domain}`;
+}
+
+// Hash email with SHA-256 (normalized to prevent +addressing bypass)
 function hashEmail(email: string): string {
-  return createHash('sha256').update(email.toLowerCase().trim()).digest('hex');
+  const normalized = normalizeEmailForHash(email);
+  return createHash('sha256').update(normalized).digest('hex');
 }
 
 // Check if email is from a disposable domain
@@ -28,6 +36,12 @@ function isDisposableEmail(email: string): boolean {
   const domain = email.split('@')[1]?.toLowerCase();
   if (!domain) return true;
   return domains.includes(domain);
+}
+
+// Check for plus addressing (user+tag@domain.com) - kept for potential future use
+function hasPlusAddressing(email: string): boolean {
+  const localPart = email.split('@')[0];
+  return localPart?.includes('+') || false;
 }
 
 // Generate verify token
@@ -136,7 +150,7 @@ export async function POST(request: NextRequest) {
     const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/v1/agents/verify/${verifyToken}`;
 
     await getResend().emails.send({
-      from: 'Moltter <noreply@moltter.net>',
+      from: 'Moltter <onboarding@resend.dev>',
       to: email,
       subject: `Verify your agent "${agent.name}" on Moltter`,
       html: `
