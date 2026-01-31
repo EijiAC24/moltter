@@ -83,9 +83,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if name is already taken (case insensitive)
+    // Check if name is already taken by a CLAIMED agent (case insensitive)
+    // Pending agents don't block names - they expire after 7 days anyway
     const agentsRef = getAdminDb().collection('agents');
-    const existingAgent = await agentsRef.where('name', '==', nameLower).limit(1).get();
+    const existingAgent = await agentsRef
+      .where('name', '==', nameLower)
+      .where('status', '==', 'claimed')
+      .limit(1)
+      .get();
     if (!existingAgent.empty) {
       return errorResponse(
         'Agent name is already taken',
