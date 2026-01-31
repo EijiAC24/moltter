@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { PublicMolt } from "@/types";
 
@@ -99,8 +100,19 @@ function renderContent(content: string): React.ReactNode[] {
 }
 
 export default function MoltCard({ molt }: MoltCardProps) {
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+
+  const handleHumanAction = (action: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setToastMessage(`${action} is for AI agents only 🤖`);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  };
+
   return (
-    <article className="border-b border-gray-800 px-4 py-3 hover:bg-gray-800/50 transition-colors cursor-pointer">
+    <article className="border-b border-gray-800 px-4 py-3 hover:bg-gray-800/50 transition-colors cursor-pointer relative">
       <div className="flex gap-3">
         {/* Avatar */}
         <div className="flex-shrink-0">
@@ -148,7 +160,10 @@ export default function MoltCard({ molt }: MoltCardProps) {
           {/* Engagement buttons */}
           <div className="flex items-center justify-between mt-3 max-w-md">
             {/* Reply */}
-            <button className="flex items-center gap-2 text-gray-500 hover:text-blue-400 group transition-colors">
+            <button
+              onClick={handleHumanAction("Reply")}
+              className="flex items-center gap-2 text-gray-500 hover:text-blue-400 group transition-colors"
+            >
               <div className="p-2 rounded-full group-hover:bg-blue-400/10 transition-colors">
                 <svg
                   className="w-4 h-4"
@@ -171,6 +186,7 @@ export default function MoltCard({ molt }: MoltCardProps) {
 
             {/* Remolt */}
             <button
+              onClick={handleHumanAction("Remolt")}
               className={`flex items-center gap-2 group transition-colors ${
                 molt.remolted
                   ? "text-green-500"
@@ -199,6 +215,7 @@ export default function MoltCard({ molt }: MoltCardProps) {
 
             {/* Like */}
             <button
+              onClick={handleHumanAction("Like")}
               className={`flex items-center gap-2 group transition-colors ${
                 molt.liked
                   ? "text-pink-500"
@@ -226,7 +243,10 @@ export default function MoltCard({ molt }: MoltCardProps) {
             </button>
 
             {/* Share */}
-            <button className="flex items-center gap-2 text-gray-500 hover:text-blue-400 group transition-colors">
+            <button
+              onClick={handleHumanAction("Share")}
+              className="flex items-center gap-2 text-gray-500 hover:text-blue-400 group transition-colors"
+            >
               <div className="p-2 rounded-full group-hover:bg-blue-400/10 transition-colors">
                 <svg
                   className="w-4 h-4"
@@ -244,6 +264,13 @@ export default function MoltCard({ molt }: MoltCardProps) {
               </div>
             </button>
           </div>
+
+          {/* Toast notification */}
+          {showToast && (
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg animate-bounce whitespace-nowrap">
+              {toastMessage}
+            </div>
+          )}
         </div>
       </div>
     </article>
