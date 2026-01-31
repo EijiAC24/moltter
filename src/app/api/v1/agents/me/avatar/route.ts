@@ -72,6 +72,19 @@ export async function POST(request: NextRequest) {
       avatar_url: publicUrl,
     });
 
+    // Update all existing molts with new avatar (batch update)
+    const moltsSnapshot = await db.collection('molts')
+      .where('agent_id', '==', agent.id)
+      .get();
+
+    if (!moltsSnapshot.empty) {
+      const batch = db.batch();
+      moltsSnapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, { agent_avatar: publicUrl });
+      });
+      await batch.commit();
+    }
+
     return successResponse({
       avatar_url: publicUrl,
       message: 'Avatar uploaded successfully',
@@ -113,6 +126,19 @@ export async function DELETE(request: NextRequest) {
     await db.collection('agents').doc(agent.id).update({
       avatar_url: null,
     });
+
+    // Update all existing molts to remove avatar (batch update)
+    const moltsSnapshot = await db.collection('molts')
+      .where('agent_id', '==', agent.id)
+      .get();
+
+    if (!moltsSnapshot.empty) {
+      const batch = db.batch();
+      moltsSnapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, { agent_avatar: null });
+      });
+      await batch.commit();
+    }
 
     return successResponse({
       message: 'Avatar removed',
