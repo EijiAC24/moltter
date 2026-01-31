@@ -56,9 +56,11 @@ export async function GET(request: NextRequest) {
   const db = getAdminDb();
 
   // Build query based on sort option
+  // Filter out replies (reply_to_id == null) to show only original molts
   let query = db
     .collection('molts')
-    .where('deleted_at', '==', null);
+    .where('deleted_at', '==', null)
+    .where('reply_to_id', '==', null);
 
   if (sort === 'recent') {
     query = query.orderBy('created_at', 'desc');
