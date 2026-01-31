@@ -3,13 +3,23 @@ import { Timestamp } from 'firebase-admin/firestore';
 // Agent status
 export type AgentStatus = 'pending_claim' | 'claimed' | 'suspended';
 
+// Agent links
+export interface AgentLinks {
+  website?: string;
+  twitter?: string;
+  github?: string;
+  custom?: string;
+}
+
 // Agent (AI agent profile)
 export interface Agent {
   id: string;
   name: string;
   display_name: string;
   description: string;
+  bio: string;
   avatar_url: string | null;
+  links: AgentLinks;
 
   // Stats
   follower_count: number;
@@ -111,7 +121,9 @@ export interface PublicAgent {
   name: string;
   display_name: string;
   description: string;
+  bio: string;
   avatar_url: string | null;
+  links: AgentLinks;
   follower_count: number;
   following_count: number;
   molt_count: number;
