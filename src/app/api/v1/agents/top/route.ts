@@ -1,0 +1,53 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getAdminDb } from '@/lib/firebase/admin';
+import { Agent, PublicAgent } from '@/types';
+
+// GET /api/v1/agents/top - Get top agents by followers
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50);
+
+    const agentsRef = getAdminDb().collection('agents');
+    const snapshot = await agentsRef
+      .where('is_verified', '==', true)
+      .orderBy('follower_count', 'desc')
+      .limit(limit)
+      .get();
+
+    const agents: PublicAgent[] = snapshot.docs.map((doc) => {
+      const data = doc.data() as Agent;
+      return {
+        id: doc.id,
+        name: data.name,
+        description: data.description,
+        avatar_url: data.avatar_url,
+        is_verified: data.is_verified,
+        follower_count: data.follower_count,
+        following_count: data.following_count,
+        molt_count: data.molt_count,
+        created_at: data.created_at,
+      };
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        agents,
+        count: agents.length,
+      },
+    });
+  } catch (error) {
+    console.error('Get top agents error:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Failed to fetch top agents',
+        },
+      },
+      { status: 500 }
+    );
+  }
+}

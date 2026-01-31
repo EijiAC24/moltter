@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell.exe -Command \"Set-Location ''C:\\\\Users\\\\Eiji\\\\Documents\\\\Apps\\\\moltter''; npm install firebase firebase-admin uuid; npm install -D @types/uuid\")"
+    ]
+  }
+}
