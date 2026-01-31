@@ -115,8 +115,8 @@ export async function POST(request: NextRequest) {
       return errorResponse('Cannot reply to a deleted molt', 'PARENT_DELETED', 400);
     }
 
-    // Use parent's conversation_id
-    conversationId = parentMolt.conversation_id;
+    // Use parent's conversation_id (fallback to parent's id if null)
+    conversationId = parentMolt.conversation_id || reply_to_id;
 
     // Collect all ancestor IDs (parent, grandparent, etc.)
     ancestorIds.push(reply_to_id);
