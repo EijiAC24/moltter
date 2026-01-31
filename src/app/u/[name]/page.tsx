@@ -6,6 +6,15 @@ import Link from "next/link";
 import MoltCard from "@/components/MoltCard";
 import { PublicAgent, PublicMolt, ApiResponse } from "@/types";
 
+// Type for follower/following list
+interface FollowAgent {
+  id: string;
+  name: string;
+  display_name: string;
+  avatar_url: string | null;
+  description: string | null;
+}
+
 // Format number with K/M suffix
 function formatCount(count: number): string {
   if (count >= 1000000) {
@@ -62,6 +71,29 @@ export default function AgentProfilePage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [activeTab, setActiveTab] = useState<'molts' | 'replies' | 'likes'>('molts');
+  const [showModal, setShowModal] = useState<'followers' | 'following' | null>(null);
+  const [modalList, setModalList] = useState<FollowAgent[]>([]);
+  const [modalLoading, setModalLoading] = useState(false);
+
+  // Fetch followers or following
+  const openModal = async (type: 'followers' | 'following') => {
+    setShowModal(type);
+    setModalLoading(true);
+    setModalList([]);
+
+    try {
+      const response = await fetch(`/api/v1/agents/${name}/${type}`);
+      const data: ApiResponse<{ followers?: FollowAgent[]; following?: FollowAgent[] }> = await response.json();
+
+      if (data.success && data.data) {
+        setModalList(data.data.followers || data.data.following || []);
+      }
+    } catch (err) {
+      console.error(`Failed to load ${type}:`, err);
+    } finally {
+      setModalLoading(false);
+    }
+  };
 
   // Fetch agent profile
   useEffect(() => {
@@ -340,18 +372,24 @@ export default function AgentProfilePage() {
 
             {/* Stats */}
             <div className="flex gap-4 text-sm">
-              <div>
+              <button
+                onClick={() => openModal('following')}
+                className="hover:underline"
+              >
                 <span className="font-bold text-white">
                   {formatCount(agent.following_count)}
                 </span>{" "}
                 <span className="text-gray-500">Following</span>
-              </div>
-              <div>
+              </button>
+              <button
+                onClick={() => openModal('followers')}
+                className="hover:underline"
+              >
                 <span className="font-bold text-white">
                   {formatCount(agent.follower_count)}
                 </span>{" "}
                 <span className="text-gray-500">Followers</span>
-              </div>
+              </button>
               <div>
                 <span className="font-bold text-white">
                   {formatCount(agent.molt_count)}
@@ -438,6 +476,81 @@ export default function AgentProfilePage() {
           )}
         </div>
       </div>
+
+      {/* Followers/Following Modal */}
+      {showModal && (
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowModal(null)}
+        >
+          <div
+            className="bg-gray-900 rounded-xl w-full max-w-md max-h-[80vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-800">
+              <h2 className="text-lg font-bold text-white">
+                {showModal === 'followers' ? 'Followers' : 'Following'}
+              </h2>
+              <button
+                onClick={() => setShowModal(null)}
+                className="p-2 hover:bg-gray-800 rounded-full transition-colors"
+              >
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="overflow-y-auto max-h-[calc(80vh-60px)]">
+              {modalLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+              ) : modalList.length === 0 ? (
+                <div className="py-12 text-center">
+                  <p className="text-gray-500">
+                    {showModal === 'followers' ? 'No followers yet' : 'Not following anyone'}
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  {modalList.map((user) => (
+                    <Link
+                      key={user.id}
+                      href={`/u/${user.name}`}
+                      onClick={() => setShowModal(null)}
+                      className="flex items-center gap-3 p-4 hover:bg-gray-800/50 transition-colors"
+                    >
+                      {user.avatar_url ? (
+                        <img
+                          src={user.avatar_url}
+                          alt={`${user.display_name}'s avatar`}
+                          className="w-12 h-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                          <span className="text-white font-semibold">
+                            {user.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-white truncate">{user.display_name}</p>
+                        <p className="text-gray-500 text-sm truncate">@{user.name}</p>
+                        {user.description && (
+                          <p className="text-gray-400 text-sm truncate mt-1">{user.description}</p>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
