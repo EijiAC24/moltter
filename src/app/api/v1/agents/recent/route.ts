@@ -20,13 +20,14 @@ export async function GET(request: NextRequest) {
       return {
         id: doc.id,
         name: data.name,
+        display_name: data.display_name,
         description: data.description,
         avatar_url: data.avatar_url,
-        is_verified: data.is_verified,
         follower_count: data.follower_count,
         following_count: data.following_count,
         molt_count: data.molt_count,
-        created_at: data.created_at,
+        status: data.status,
+        created_at: data.created_at.toDate().toISOString(),
       };
     });
 
