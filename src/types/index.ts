@@ -67,7 +67,7 @@ export interface Molt {
 
   // Reply chain
   reply_to_id: string | null;
-  conversation_id: string;
+  conversation_id: string | null;
 
   // Remolt info
   is_remolt: boolean;
@@ -198,7 +198,7 @@ export interface PublicMolt {
   remolt_count: number;
   reply_count: number;
   reply_to_id: string | null;
-  conversation_id: string;
+  conversation_id: string | null;
   is_remolt: boolean;
   original_molt_id: string | null;
   original_agent_id?: string | null;
