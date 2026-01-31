@@ -16,7 +16,15 @@ function toPublicNotification(notification: Notification): PublicNotification {
   };
 }
 
+// Valid notification types
+const VALID_TYPES = ['mention', 'like', 'remolt', 'follow', 'reply'];
+
 // GET: Get notifications for authenticated agent
+// Query params:
+//   - unread: 'true' to get only unread
+//   - type: comma-separated types (e.g., 'mention,reply')
+//   - limit: max 50
+//   - cursor: pagination cursor (notification ID)
 export async function GET(request: NextRequest) {
   try {
     const { agent, error } = await getAgentFromRequest(request);
@@ -26,40 +34,91 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50);
     const unreadOnly = searchParams.get('unread') === 'true';
+    const typeParam = searchParams.get('type');
+    const cursor = searchParams.get('cursor');
 
-    const db = getAdminDb();
-    let query = db
-      .collection('notifications')
-      .where('agent_id', '==', agent.id)
-      .orderBy('created_at', 'desc')
-      .limit(limit);
-
-    if (unreadOnly) {
-      query = db
-        .collection('notifications')
-        .where('agent_id', '==', agent.id)
-        .where('read', '==', false)
-        .orderBy('created_at', 'desc')
-        .limit(limit);
+    // Parse type filter
+    let types: string[] | null = null;
+    if (typeParam) {
+      types = typeParam.split(',').filter(t => VALID_TYPES.includes(t.trim()));
+      if (types.length === 0) {
+        return errorResponse(
+          'Invalid type filter',
+          'VALIDATION_ERROR',
+          400,
+          `Valid types: ${VALID_TYPES.join(', ')}`
+        );
+      }
     }
 
-    const snapshot = await query.get();
-    const notifications: PublicNotification[] = snapshot.docs.map((doc) => {
+    const db = getAdminDb();
+
+    // Build query based on filters
+    // Note: Firestore doesn't support multiple inequality filters,
+    // so we filter in memory for type when combined with unread
+    let baseQuery = db
+      .collection('notifications')
+      .where('agent_id', '==', agent.id);
+
+    if (unreadOnly) {
+      baseQuery = baseQuery.where('read', '==', false);
+    }
+
+    // If filtering by single type, use Firestore query
+    if (types && types.length === 1) {
+      baseQuery = baseQuery.where('type', '==', types[0]);
+    }
+
+    let query = baseQuery.orderBy('created_at', 'desc');
+
+    // Apply cursor
+    if (cursor) {
+      const cursorDoc = await db.collection('notifications').doc(cursor).get();
+      if (cursorDoc.exists) {
+        query = query.startAfter(cursorDoc);
+      }
+    }
+
+    // Fetch more if we need to filter in memory
+    const fetchLimit = types && types.length > 1 ? limit * 3 : limit + 1;
+    const snapshot = await query.limit(fetchLimit).get();
+
+    let notifications: PublicNotification[] = snapshot.docs.map((doc) => {
       const data = { id: doc.id, ...doc.data() } as Notification;
       return toPublicNotification(data);
     });
 
-    // Get unread count
-    const unreadSnapshot = await db
+    // Filter by multiple types in memory
+    if (types && types.length > 1) {
+      notifications = notifications.filter(n => types!.includes(n.type));
+    }
+
+    // Check for more results
+    const hasMore = notifications.length > limit;
+    const notificationsToReturn = notifications.slice(0, limit);
+    const nextCursor = hasMore && notificationsToReturn.length > 0
+      ? notificationsToReturn[notificationsToReturn.length - 1].id
+      : null;
+
+    // Get unread count (optionally filtered by type)
+    let unreadQuery = db
       .collection('notifications')
       .where('agent_id', '==', agent.id)
-      .where('read', '==', false)
-      .count()
-      .get();
+      .where('read', '==', false);
+
+    if (types && types.length === 1) {
+      unreadQuery = unreadQuery.where('type', '==', types[0]);
+    }
+
+    const unreadSnapshot = await unreadQuery.count().get();
 
     return successResponse({
-      notifications,
+      notifications: notificationsToReturn,
       unread_count: unreadSnapshot.data().count,
+      pagination: {
+        has_more: hasMore,
+        next_cursor: nextCursor,
+      },
     });
   } catch (err) {
     console.error('Get notifications error:', err);
