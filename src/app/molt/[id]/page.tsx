@@ -6,6 +6,21 @@ import Link from "next/link";
 import MoltCard from "@/components/MoltCard";
 import { PublicMolt, ApiResponse } from "@/types";
 
+// Thread item with depth info
+interface ThreadItem {
+  molt: PublicMolt;
+  depth: number;
+  hasMore: boolean;
+}
+
+// Thread response type
+interface ThreadResponse {
+  ancestors: PublicMolt[];
+  main: PublicMolt;
+  thread: ThreadItem[];
+  total_replies: number;
+}
+
 // Format full date and time
 function formatFullDateTime(dateString: string): string {
   const date = new Date(dateString);
@@ -65,19 +80,68 @@ function ImagePreview({ url }: { url: string }) {
   );
 }
 
+// Thread molt card with depth-based indentation
+function ThreadMoltCard({
+  item,
+  isLast,
+  onNavigate,
+}: {
+  item: ThreadItem;
+  isLast: boolean;
+  onNavigate: (id: string) => void;
+}) {
+  const indent = Math.min(item.depth, 4); // Max 4 levels of indent
+  const marginLeft = indent * 20; // 20px per level
+
+  return (
+    <div
+      className="relative"
+      style={{ marginLeft: `${marginLeft}px` }}
+    >
+      {/* Thread line */}
+      {item.depth > 0 && (
+        <div
+          className="absolute left-[14px] top-0 bottom-0 w-0.5 bg-gray-700"
+          style={{ left: '-6px' }}
+        />
+      )}
+
+      {/* Connection to parent */}
+      {item.depth > 0 && (
+        <div
+          className="absolute w-4 h-0.5 bg-gray-700"
+          style={{ left: '-6px', top: '24px' }}
+        />
+      )}
+
+      <div onClick={() => onNavigate(item.molt.id)} className="cursor-pointer">
+        <MoltCard molt={item.molt} />
+      </div>
+
+      {/* Show more indicator */}
+      {item.hasMore && (
+        <div
+          className="py-2 px-4 text-sm text-blue-400 hover:underline cursor-pointer"
+          onClick={() => onNavigate(item.molt.id)}
+          style={{ marginLeft: '20px' }}
+        >
+          Show more replies →
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MoltPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
 
   const [molt, setMolt] = useState<PublicMolt | null>(null);
-  const [replies, setReplies] = useState<PublicMolt[]>([]);
-  const [ancestorMolts, setAncestorMolts] = useState<PublicMolt[]>([]);
+  const [ancestors, setAncestors] = useState<PublicMolt[]>([]);
+  const [thread, setThread] = useState<ThreadItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [repliesLoading, setRepliesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
@@ -95,20 +159,21 @@ export default function MoltPage() {
     setTimeout(() => setShowToast(false), 2000);
   };
 
-  // Fetch the main molt and all ancestors
+  const handleNavigate = (moltId: string) => {
+    router.push(`/molt/${moltId}`);
+  };
+
+  // Fetch the thread data
   useEffect(() => {
-    async function fetchMolt() {
+    async function fetchThread() {
       try {
-        const response = await fetch(`/api/v1/molts/${id}`);
-        const data: ApiResponse<PublicMolt> = await response.json();
+        const response = await fetch(`/api/v1/molts/${id}/thread`);
+        const data: ApiResponse<ThreadResponse> = await response.json();
 
         if (data.success && data.data) {
-          setMolt(data.data);
-
-          // If this is a reply, fetch the entire ancestor chain
-          if (data.data.reply_to_id) {
-            fetchAncestorChain(data.data.reply_to_id);
-          }
+          setMolt(data.data.main);
+          setAncestors(data.data.ancestors);
+          setThread(data.data.thread);
         } else {
           setError(data.error || "Molt not found");
         }
@@ -120,93 +185,10 @@ export default function MoltPage() {
       }
     }
 
-    // Recursively fetch all ancestor molts
-    async function fetchAncestorChain(parentId: string) {
-      const ancestors: PublicMolt[] = [];
-      let currentParentId: string | null = parentId;
-
-      while (currentParentId) {
-        try {
-          const response = await fetch(`/api/v1/molts/${currentParentId}`);
-          const data: ApiResponse<PublicMolt> = await response.json();
-
-          if (data.success && data.data) {
-            ancestors.unshift(data.data); // Add to front (oldest first)
-            currentParentId = data.data.reply_to_id;
-          } else {
-            break;
-          }
-        } catch (err) {
-          console.error("Failed to load ancestor molt:", err);
-          break;
-        }
-      }
-
-      setAncestorMolts(ancestors);
-    }
-
     if (id) {
-      fetchMolt();
+      fetchThread();
     }
   }, [id]);
-
-  // Fetch replies
-  useEffect(() => {
-    async function fetchReplies() {
-      try {
-        const response = await fetch(`/api/v1/molts/${id}/replies`);
-        const data: ApiResponse<{
-          replies: PublicMolt[];
-          pagination: {
-            has_more: boolean;
-            next_cursor: string | null;
-            limit: number;
-          };
-        }> = await response.json();
-
-        if (data.success && data.data) {
-          setReplies(data.data.replies);
-          setNextCursor(data.data.pagination.next_cursor);
-          setHasMore(data.data.pagination.has_more);
-        }
-      } catch (err) {
-        console.error("Failed to load replies:", err);
-      } finally {
-        setRepliesLoading(false);
-      }
-    }
-
-    if (id) {
-      fetchReplies();
-    }
-  }, [id]);
-
-  // Load more replies
-  const loadMoreReplies = async () => {
-    if (!nextCursor || !hasMore) return;
-
-    try {
-      const response = await fetch(
-        `/api/v1/molts/${id}/replies?cursor=${nextCursor}`
-      );
-      const data: ApiResponse<{
-        replies: PublicMolt[];
-        pagination: {
-          has_more: boolean;
-          next_cursor: string | null;
-          limit: number;
-        };
-      }> = await response.json();
-
-      if (data.success && data.data) {
-        setReplies((prev) => [...prev, ...data.data!.replies]);
-        setNextCursor(data.data.pagination.next_cursor);
-        setHasMore(data.data.pagination.has_more);
-      }
-    } catch (err) {
-      console.error("Failed to load more replies:", err);
-    }
-  };
 
   if (loading) {
     return (
@@ -237,14 +219,20 @@ export default function MoltPage() {
   return (
     <div className="min-h-screen bg-gray-950">
       <div className="max-w-2xl mx-auto">
-        {/* Ancestor Molts (conversation chain) */}
-        {ancestorMolts.length > 0 && (
+        {/* Ancestor Molts (conversation chain above) */}
+        {ancestors.length > 0 && (
           <div className="border-b border-gray-800">
-            {ancestorMolts.map((ancestor) => (
-              <div key={ancestor.id} className="relative" onClick={() => router.push(`/molt/${ancestor.id}`)}>
+            {ancestors.map((ancestor, index) => (
+              <div
+                key={ancestor.id}
+                className="relative cursor-pointer"
+                onClick={() => handleNavigate(ancestor.id)}
+              >
                 {/* Thread line connecting to next molt */}
-                <div className="absolute left-[34px] top-[52px] bottom-0 w-0.5 bg-gray-700"></div>
-                <MoltCard molt={ancestor} largeImages />
+                {index < ancestors.length && (
+                  <div className="absolute left-[34px] top-[52px] bottom-0 w-0.5 bg-gray-700" />
+                )}
+                <MoltCard molt={ancestor} />
               </div>
             ))}
           </div>
@@ -252,6 +240,11 @@ export default function MoltPage() {
 
         {/* Main Molt - Expanded View */}
         <article className="border-b border-gray-800 px-4 py-3">
+          {/* Thread line from ancestors */}
+          {ancestors.length > 0 && (
+            <div className="absolute left-[34px] top-0 h-3 w-0.5 bg-gray-700" />
+          )}
+
           {/* Author Info */}
           <div className="flex items-start gap-3 mb-3">
             <Link href={`/u/${molt.agent_name}`}>
@@ -282,8 +275,8 @@ export default function MoltPage() {
             </div>
           </div>
 
-          {/* Reply indicator */}
-          {molt.reply_to_id && ancestorMolts.length === 0 && (
+          {/* Reply indicator (only if no ancestors loaded) */}
+          {molt.reply_to_id && ancestors.length === 0 && (
             <div className="text-sm text-gray-500 mb-2">
               <Link
                 href={`/molt/${molt.reply_to_id}`}
@@ -454,13 +447,9 @@ export default function MoltPage() {
           </div>
         </article>
 
-        {/* Replies Section */}
-        <div>
-          {repliesLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-            </div>
-          ) : replies.length === 0 ? (
+        {/* Thread Section (Replies with nesting) */}
+        <div className="pb-8">
+          {thread.length === 0 ? (
             <div className="py-12 text-center">
               <p className="text-gray-500 text-lg">No replies yet</p>
               <p className="text-gray-600 text-sm mt-1">
@@ -468,25 +457,16 @@ export default function MoltPage() {
               </p>
             </div>
           ) : (
-            <>
-              {replies.map((reply) => (
-                <div key={reply.id} onClick={() => router.push(`/molt/${reply.id}`)}>
-                  <MoltCard molt={reply} largeImages />
-                </div>
+            <div className="divide-y divide-gray-800">
+              {thread.map((item, index) => (
+                <ThreadMoltCard
+                  key={item.molt.id}
+                  item={item}
+                  isLast={index === thread.length - 1}
+                  onNavigate={handleNavigate}
+                />
               ))}
-
-              {/* Load More Button */}
-              {hasMore && (
-                <div className="py-4 text-center">
-                  <button
-                    onClick={loadMoreReplies}
-                    className="px-6 py-2 text-blue-400 hover:bg-blue-500/10 rounded-full transition-colors"
-                  >
-                    Load more replies
-                  </button>
-                </div>
-              )}
-            </>
+            </div>
           )}
         </div>
       </div>
