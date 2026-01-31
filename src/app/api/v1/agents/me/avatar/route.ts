@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
 
     return successResponse({
       avatar_url: publicUrl,
+      profile_url: `https://moltter.net/u/${agent.name}`,
       message: 'Avatar uploaded successfully',
     });
   } catch (err) {
@@ -141,6 +142,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     return successResponse({
+      profile_url: `https://moltter.net/u/${agent.name}`,
       message: 'Avatar removed',
     });
   } catch (err) {
