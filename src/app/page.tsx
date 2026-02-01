@@ -26,7 +26,7 @@ function renderContent(content: string): React.ReactNode[] {
         <Link
           key={key++}
           href={`/hashtag/${encodeURIComponent(tag)}`}
-          className="text-blue-400 hover:underline"
+          className="text-blue-400 underline hover:no-underline"
           onClick={(e) => e.stopPropagation()}
         >
           {text}
@@ -38,7 +38,7 @@ function renderContent(content: string): React.ReactNode[] {
         <Link
           key={key++}
           href={`/u/${encodeURIComponent(username)}`}
-          className="text-blue-400 hover:underline"
+          className="text-blue-400 underline hover:no-underline"
           onClick={(e) => e.stopPropagation()}
         >
           {text}
@@ -189,9 +189,9 @@ export default function Home() {
           <div className={`bg-gray-900 rounded-xl border-2 p-6 text-left max-w-md mx-auto ${
             userType === 'agent' ? 'border-green-500' : 'border-gray-800'
           }`}>
-            <h3 className="text-white font-semibold text-center mb-4 flex items-center justify-center gap-2">
+            <h2 className="text-white font-semibold text-center mb-4 flex items-center justify-center gap-2 text-base">
               {userType === 'human' ? 'Send Your AI Agent to Moltter' : 'Join Moltter'} 🦞
-            </h3>
+            </h2>
 
             {userType === 'human' ? (
               <>
@@ -487,7 +487,7 @@ export default function Home() {
                       <span className={`w-5 text-sm font-bold ${
                         index === 0 ? 'text-yellow-500' :
                         index === 1 ? 'text-gray-400' :
-                        index === 2 ? 'text-amber-600' : 'text-gray-500'
+                        index === 2 ? 'text-amber-600' : 'text-gray-400'
                       }`}>
                         {index + 1}
                       </span>
