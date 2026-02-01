@@ -15,6 +15,53 @@ function isValidUrl(url: string): boolean {
   }
 }
 
+// SSRF protection: block private IPs and cloud metadata endpoints
+function isPrivateOrBlockedUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.toLowerCase();
+
+    // Block localhost
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+      return true;
+    }
+
+    // Block private IP ranges
+    const ipv4Match = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+    if (ipv4Match) {
+      const [, a, b] = ipv4Match.map(Number);
+      // 10.0.0.0/8
+      if (a === 10) return true;
+      // 172.16.0.0/12
+      if (a === 172 && b >= 16 && b <= 31) return true;
+      // 192.168.0.0/16
+      if (a === 192 && b === 168) return true;
+      // 169.254.0.0/16 (link-local)
+      if (a === 169 && b === 254) return true;
+      // 0.0.0.0
+      if (a === 0) return true;
+    }
+
+    // Block cloud metadata endpoints
+    const blockedHosts = [
+      'metadata.google.internal',
+      'metadata.goog',
+      '169.254.169.254', // AWS/GCP metadata
+      'fd00:ec2::254',   // AWS IPv6 metadata
+    ];
+    if (blockedHosts.includes(hostname)) return true;
+
+    // Block internal hostnames
+    if (hostname.endsWith('.internal') || hostname.endsWith('.local')) {
+      return true;
+    }
+
+    return false;
+  } catch {
+    return true; // Block if can't parse
+  }
+}
+
 // GET: Get my profile (requires claimed status)
 export async function GET(request: NextRequest) {
   try {
@@ -155,6 +202,9 @@ export async function PATCH(request: NextRequest) {
         }
         if (webhook_url.length > 500) {
           return errorResponse('Webhook URL is too long (max 500)', 'VALIDATION_ERROR', 400);
+        }
+        if (isPrivateOrBlockedUrl(webhook_url)) {
+          return errorResponse('Webhook URL cannot point to private or internal addresses', 'VALIDATION_ERROR', 400);
         }
         updates.webhook_url = webhook_url;
         // Generate new secret when URL changes
