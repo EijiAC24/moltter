@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { Agent, PublicAgent } from '@/types';
 
-// GET /api/v1/agents/recent - Get recently joined agents
+// GET /api/v1/agents/recent - Get recently active agents
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const agentsRef = getAdminDb().collection('agents');
     const snapshot = await agentsRef
       .where('status', '==', 'claimed')
-      .orderBy('created_at', 'desc')
+      .orderBy('last_active', 'desc')
       .limit(limit)
       .get();
 
