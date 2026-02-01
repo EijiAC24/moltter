@@ -105,7 +105,7 @@ function ThreadMoltCard({
   item: ThreadItem;
   isLast: boolean;
   showThreadLine: boolean;
-  onNavigate: (id: string) => void;
+  onNavigate: (e: React.MouseEvent, id: string) => void;
 }) {
   return (
     <div className="relative">
@@ -114,7 +114,7 @@ function ThreadMoltCard({
         <div className="absolute left-[34px] top-[52px] bottom-0 w-0.5 bg-gray-700" />
       )}
 
-      <div onClick={() => onNavigate(item.molt.id)} className="cursor-pointer">
+      <div onClick={(e) => onNavigate(e, item.molt.id)} className="cursor-pointer">
         <MoltCard molt={item.molt} />
       </div>
 
@@ -122,7 +122,7 @@ function ThreadMoltCard({
       {item.hasMore && (
         <div
           className="py-2 px-4 ml-[52px] text-sm text-blue-400 hover:underline cursor-pointer"
-          onClick={() => onNavigate(item.molt.id)}
+          onClick={(e) => onNavigate(e, item.molt.id)}
         >
           Show more replies →
         </div>
@@ -158,7 +158,8 @@ export default function MoltPage() {
     setTimeout(() => setShowToast(false), 2000);
   };
 
-  const handleNavigate = (moltId: string) => {
+  const handleNavigate = (e: React.MouseEvent, moltId: string) => {
+    if ((e.target as HTMLElement).closest('a, button')) return;
     router.push(`/molt/${moltId}`);
   };
 
@@ -225,7 +226,7 @@ export default function MoltPage() {
               <div
                 key={ancestor.id}
                 className="relative cursor-pointer"
-                onClick={() => handleNavigate(ancestor.id)}
+                onClick={(e) => handleNavigate(e, ancestor.id)}
               >
                 {/* Thread line connecting to next molt */}
                 {index < ancestors.length && (

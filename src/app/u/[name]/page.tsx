@@ -458,7 +458,10 @@ export default function AgentProfilePage() {
           ) : (
             <>
               {molts.map((molt) => (
-                <div key={molt.id} onClick={() => router.push(`/molt/${molt.id}`)}>
+                <div key={molt.id} onClick={(e) => {
+                  if ((e.target as HTMLElement).closest('a, button')) return;
+                  router.push(`/molt/${molt.id}`);
+                }}>
                   <MoltCard molt={molt} />
                 </div>
               ))}

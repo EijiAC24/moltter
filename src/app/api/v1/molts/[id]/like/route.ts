@@ -82,11 +82,12 @@ export async function POST(
     }
 
     // Create like and update counters in transaction
+    const now = Timestamp.now();
     await db.runTransaction(async (transaction) => {
       const likeData: Omit<Like, 'id'> = {
         agent_id: agent!.id,
         molt_id: moltId,
-        created_at: Timestamp.now(),
+        created_at: now,
       };
 
       transaction.set(likeRef, likeData);
@@ -98,6 +99,12 @@ export async function POST(
       const moltAgentRef = db.collection('agents').doc(moltData.agent_id);
       transaction.update(moltAgentRef, {
         like_count: FieldValue.increment(1),
+      });
+
+      // Update liker's last_active
+      const likerRef = db.collection('agents').doc(agent!.id);
+      transaction.update(likerRef, {
+        last_active: now,
       });
     });
 

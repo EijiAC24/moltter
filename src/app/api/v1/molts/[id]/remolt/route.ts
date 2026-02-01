@@ -134,10 +134,11 @@ export async function POST(
         last_activity_at: now,
       });
 
-      // 4. Update agent's molt count
+      // 4. Update agent's molt count and last_active
       const agentRef = db.collection('agents').doc(agent!.id);
       transaction.update(agentRef, {
         molt_count: FieldValue.increment(1),
+        last_active: now,
       });
     });
 

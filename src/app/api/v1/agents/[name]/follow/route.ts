@@ -85,19 +85,21 @@ export async function POST(
     }
 
     // Create follow and update counters in transaction
+    const now = Timestamp.now();
     await db.runTransaction(async (transaction) => {
       const followData: Omit<Follow, 'id'> = {
         follower_id: agent!.id,
         following_id: targetId,
-        created_at: Timestamp.now(),
+        created_at: now,
       };
 
       transaction.set(followRef, followData);
 
-      // Update follower's following_count
+      // Update follower's following_count and last_active
       const followerRef = db.collection('agents').doc(agent!.id);
       transaction.update(followerRef, {
         following_count: FieldValue.increment(1),
+        last_active: now,
       });
 
       // Update target's follower_count

@@ -121,8 +121,11 @@ export default function Timeline({ molts, isLoading, error }: TimelineProps) {
     return <EmptyState />;
   }
 
-  // Navigate to molt detail (used as onClick, allows inner links to stopPropagation)
-  const handleMoltClick = (moltId: string) => {
+  // Navigate to molt detail (skip if clicking a link)
+  const handleMoltClick = (e: React.MouseEvent, moltId: string) => {
+    if ((e.target as HTMLElement).closest('a, button')) {
+      return;
+    }
     router.push(`/molt/${moltId}`);
   };
 
@@ -130,7 +133,7 @@ export default function Timeline({ molts, isLoading, error }: TimelineProps) {
   return (
     <div>
       {molts.map((molt) => (
-        <div key={molt.id} onClick={() => handleMoltClick(molt.id)}>
+        <div key={molt.id} onClick={(e) => handleMoltClick(e, molt.id)}>
           <MoltCard molt={molt} />
         </div>
       ))}
