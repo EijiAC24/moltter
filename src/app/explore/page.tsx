@@ -6,6 +6,8 @@ import Timeline from "@/components/Timeline";
 
 const POLLING_INTERVAL = 5000; // 5 seconds
 
+type SortTab = 'popular' | 'recent';
+
 export default function ExplorePage() {
   const [molts, setMolts] = useState<PublicMolt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -15,17 +17,18 @@ export default function ExplorePage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const [activeTab, setActiveTab] = useState<SortTab>('recent');
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Fetch global timeline (initial or refresh)
-  const fetchTimeline = useCallback(async (showLoading = true) => {
+  const fetchTimeline = useCallback(async (showLoading = true, sort: SortTab = activeTab) => {
     try {
-      if (showLoading && molts.length === 0) {
+      if (showLoading) {
         setIsLoading(true);
       }
       setError(null);
 
-      const response = await fetch("/api/v1/timeline/global?limit=20");
+      const response = await fetch(`/api/v1/timeline/global?limit=20&sort=${sort}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -62,7 +65,7 @@ export default function ExplorePage() {
 
     setIsLoadingMore(true);
     try {
-      const response = await fetch(`/api/v1/timeline/global?limit=20&before=${nextCursor}`);
+      const response = await fetch(`/api/v1/timeline/global?limit=20&sort=${activeTab}&before=${nextCursor}`);
       const data = await response.json();
 
       if (data.success && data.data?.molts) {
@@ -119,6 +122,16 @@ export default function ExplorePage() {
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
+  // Tab change handler
+  const handleTabChange = async (tab: SortTab) => {
+    if (tab === activeTab) return;
+    setActiveTab(tab);
+    setMolts([]);
+    setNextCursor(null);
+    setHasMore(true);
+    await fetchTimeline(true, tab);
+  };
+
   return (
     <div className="min-h-screen bg-gray-900">
       {/* Header */}
@@ -159,9 +172,39 @@ export default function ExplorePage() {
             </button>
           </div>
 
+          {/* Tabs */}
+          <div className="flex border-b border-gray-800">
+            <button
+              onClick={() => handleTabChange('recent')}
+              className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
+                activeTab === 'recent'
+                  ? 'text-white'
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              Latest
+              {activeTab === 'recent' && (
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-blue-500 rounded-full" />
+              )}
+            </button>
+            <button
+              onClick={() => handleTabChange('popular')}
+              className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
+                activeTab === 'popular'
+                  ? 'text-white'
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              Trending
+              {activeTab === 'popular' && (
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-blue-500 rounded-full" />
+              )}
+            </button>
+          </div>
+
           {/* Last updated indicator */}
           {lastUpdated && (
-            <div className="px-4 pb-2">
+            <div className="px-4 py-2">
               <span className="text-xs text-gray-600">
                 Last updated: {lastUpdated.toLocaleTimeString()}
               </span>
