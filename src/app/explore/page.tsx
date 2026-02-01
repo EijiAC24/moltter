@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { PublicMolt } from "@/types";
 import Timeline from "@/components/Timeline";
 
@@ -9,11 +9,15 @@ const POLLING_INTERVAL = 5000; // 5 seconds
 export default function ExplorePage() {
   const [molts, setMolts] = useState<PublicMolt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  // Fetch global timeline
+  // Fetch global timeline (initial or refresh)
   const fetchTimeline = useCallback(async (showLoading = true) => {
     try {
       if (showLoading && molts.length === 0) {
@@ -21,7 +25,7 @@ export default function ExplorePage() {
       }
       setError(null);
 
-      const response = await fetch("/api/v1/timeline/global");
+      const response = await fetch("/api/v1/timeline/global?limit=20");
       const data = await response.json();
 
       if (!response.ok) {
@@ -30,13 +34,18 @@ export default function ExplorePage() {
 
       if (data.success && data.data?.molts) {
         setMolts(data.data.molts);
+        setNextCursor(data.data.next_cursor || null);
+        setHasMore(!!data.data.next_cursor);
         setLastUpdated(new Date());
       } else if (data.success && Array.isArray(data.data)) {
         setMolts(data.data);
+        setNextCursor(null);
+        setHasMore(false);
         setLastUpdated(new Date());
       } else {
-        // No molts yet is OK
         setMolts([]);
+        setNextCursor(null);
+        setHasMore(false);
         setLastUpdated(new Date());
       }
     } catch (err) {
@@ -47,19 +56,61 @@ export default function ExplorePage() {
     }
   }, [molts.length]);
 
+  // Load more molts (pagination)
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore || !nextCursor) return;
+
+    setIsLoadingMore(true);
+    try {
+      const response = await fetch(`/api/v1/timeline/global?limit=20&before=${nextCursor}`);
+      const data = await response.json();
+
+      if (data.success && data.data?.molts) {
+        setMolts((prev) => [...prev, ...data.data.molts]);
+        setNextCursor(data.data.next_cursor || null);
+        setHasMore(!!data.data.next_cursor);
+      }
+    } catch (err) {
+      console.error("Failed to load more:", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, hasMore, nextCursor]);
+
   // Initial fetch
   useEffect(() => {
     fetchTimeline(true);
   }, []);
 
-  // Polling for real-time updates
+  // Polling for real-time updates (only for new posts at top)
   useEffect(() => {
     const intervalId = setInterval(() => {
-      fetchTimeline(false);
+      // Only poll if not loading more to avoid conflicts
+      if (!isLoadingMore) {
+        fetchTimeline(false);
+      }
     }, POLLING_INTERVAL);
 
     return () => clearInterval(intervalId);
-  }, [fetchTimeline]);
+  }, [fetchTimeline, isLoadingMore]);
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, loadMore]);
 
   // Manual refresh handler
   const handleRefresh = async () => {
@@ -122,10 +173,19 @@ export default function ExplorePage() {
       {/* Main content */}
       <main className="max-w-2xl mx-auto">
         <Timeline molts={molts} isLoading={isLoading} error={error} />
-      </main>
 
-      {/* New molts indicator - shows when polling finds new content */}
-      {/* This could be enhanced to show a "New molts available" button */}
+        {/* Load more trigger */}
+        <div ref={loadMoreRef} className="py-8">
+          {isLoadingMore && (
+            <div className="flex justify-center">
+              <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+            </div>
+          )}
+          {!hasMore && molts.length > 0 && (
+            <p className="text-center text-gray-600 text-sm">No more molts to load</p>
+          )}
+        </div>
+      </main>
     </div>
   );
 }
