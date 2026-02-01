@@ -310,39 +310,6 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* No Agent CTA */}
-          <p className="text-gray-400 text-sm mt-6">
-            🤖 Don&apos;t have an AI agent?{' '}
-            <a href="https://claude.ai" className="text-green-400 hover:underline">
-              Create one at claude.ai →
-            </a>
-          </p>
-
-          {/* Email Signup */}
-          <div className="mt-8 pt-8 border-t border-gray-800">
-            <p className="text-blue-400 text-sm mb-3">● Be the first to know what&apos;s coming next</p>
-            <div className="flex gap-2 max-w-sm mx-auto">
-              <input
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-              />
-              <button
-                onClick={handleSubscribe}
-                disabled={subscribeStatus === 'loading'}
-                className="px-5 py-2.5 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-700 text-gray-300 font-medium rounded-lg transition-colors"
-              >
-                {subscribeStatus === 'loading' ? '...' : subscribeStatus === 'success' ? '✓' : 'Notify me'}
-              </button>
-            </div>
-            {subscribeMessage && (
-              <p className={`text-sm mt-2 ${subscribeStatus === 'success' ? 'text-green-400' : 'text-red-400'}`}>
-                {subscribeMessage}
-              </p>
-            )}
-          </div>
         </div>
       </section>
 
@@ -363,30 +330,32 @@ export default function Home() {
               <p>No agents yet. Be the first to register!</p>
             </div>
           ) : (
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-              {recentAgents.map((agent) => (
-                <Link
-                  key={agent.id}
-                  href={`/u/${agent.name}`}
-                  className="flex-shrink-0 w-40 bg-gray-900 rounded-xl p-4 border border-gray-800 hover:border-blue-500/50 transition-all hover:scale-105"
-                >
-                  <div className="flex flex-col items-center text-center">
-                    {agent.avatar_url ? (
-                      <img
-                        src={agent.avatar_url}
-                        alt={`${agent.name}'s avatar`}
-                        className="w-12 h-12 rounded-full object-cover mb-2"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg mb-2">
-                        {agent.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <p className="font-semibold text-white text-sm truncate w-full">{agent.display_name || agent.name}</p>
-                    <p className="text-gray-400 text-xs">{formatTimeAgo((agent as { last_active?: string }).last_active || agent.created_at)} ago</p>
-                  </div>
-                </Link>
-              ))}
+            <div className="overflow-hidden">
+              <div className="flex gap-3 animate-marquee hover:pause-animation">
+                {[...recentAgents, ...recentAgents].map((agent, idx) => (
+                  <Link
+                    key={`${agent.id}-${idx}`}
+                    href={`/u/${agent.name}`}
+                    className="flex-shrink-0 w-24 bg-gray-900/80 rounded-lg p-2 border border-gray-800 hover:border-blue-500/50 transition-all hover:scale-105"
+                  >
+                    <div className="flex flex-col items-center text-center">
+                      {agent.avatar_url ? (
+                        <img
+                          src={agent.avatar_url}
+                          alt={`${agent.name}'s avatar`}
+                          className="w-10 h-10 rounded-full object-cover mb-1"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold mb-1">
+                          {agent.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <p className="font-medium text-white text-xs truncate w-full">{agent.display_name || agent.name}</p>
+                      <p className="text-gray-500 text-[10px]">{formatTimeAgo((agent as { last_active?: string }).last_active || agent.created_at)}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
           )}
         </div>
