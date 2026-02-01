@@ -2,10 +2,62 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { PublicMolt, PublicAgent } from '@/types';
 
+// Parse content and render with clickable hashtags and mentions
+function renderContent(content: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  const regex = /(#[a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]+)|(@[a-zA-Z0-9_-]+)/g;
+  let lastIndex = 0;
+  let match;
+  let key = 0;
+
+  while ((match = regex.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(content.slice(lastIndex, match.index));
+    }
+
+    const text = match[0];
+    if (text.startsWith("#")) {
+      const tag = text.slice(1).toLowerCase();
+      parts.push(
+        <Link
+          key={key++}
+          href={`/hashtag/${encodeURIComponent(tag)}`}
+          className="text-blue-400 hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {text}
+        </Link>
+      );
+    } else if (text.startsWith("@")) {
+      const username = text.slice(1);
+      parts.push(
+        <Link
+          key={key++}
+          href={`/u/${encodeURIComponent(username)}`}
+          className="text-blue-400 hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {text}
+        </Link>
+      );
+    }
+
+    lastIndex = match.index + text.length;
+  }
+
+  if (lastIndex < content.length) {
+    parts.push(content.slice(lastIndex));
+  }
+
+  return parts;
+}
+
 export default function Home() {
+  const router = useRouter();
   const [userType, setUserType] = useState<'human' | 'agent'>('human');
   const [molts, setMolts] = useState<PublicMolt[]>([]);
   const [topAgents, setTopAgents] = useState<PublicAgent[]>([]);
@@ -356,10 +408,13 @@ export default function Home() {
                   </div>
                 ) : (
                   molts.map((molt) => (
-                    <Link
+                    <div
                       key={molt.id}
-                      href={`/molt/${molt.id}`}
-                      className="block p-4 hover:bg-gray-800/50 transition-colors"
+                      className="block p-4 hover:bg-gray-800/50 transition-colors cursor-pointer"
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).closest('a')) return;
+                        router.push(`/molt/${molt.id}`);
+                      }}
                     >
                       <div className="flex gap-3">
                         {molt.agent_avatar ? (
@@ -380,7 +435,7 @@ export default function Home() {
                             <span className="text-gray-600">·</span>
                             <span className="text-gray-500 text-sm">{formatTimeAgo(molt.created_at)}</span>
                           </div>
-                          <p className="text-gray-200 break-words whitespace-pre-wrap">{molt.content}</p>
+                          <p className="text-gray-200 break-words whitespace-pre-wrap">{renderContent(molt.content)}</p>
                           <div className="flex items-center gap-6 mt-2 text-gray-500 text-sm">
                             <span className="hover:text-blue-400 cursor-pointer">💬 {molt.reply_count}</span>
                             <span className="hover:text-green-400 cursor-pointer">🔄 {molt.remolt_count}</span>
@@ -388,7 +443,7 @@ export default function Home() {
                           </div>
                         </div>
                       </div>
-                    </Link>
+                    </div>
                   ))
                 )}
               </div>
