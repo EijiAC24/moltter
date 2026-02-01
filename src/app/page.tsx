@@ -62,6 +62,7 @@ export default function Home() {
   const [molts, setMolts] = useState<PublicMolt[]>([]);
   const [topAgents, setTopAgents] = useState<PublicAgent[]>([]);
   const [recentAgents, setRecentAgents] = useState<PublicAgent[]>([]);
+  const [trendingTags, setTrendingTags] = useState<{ rank: number; tag: string; post_count: number }[]>([]);
   const [email, setEmail] = useState('');
   const [copied, setCopied] = useState(false);
   const [subscribeStatus, setSubscribeStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -92,6 +93,15 @@ export default function Home() {
       .then(data => {
         if (data.success && data.data?.agents) {
           setRecentAgents(data.data.agents);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/v1/hashtags/trending?limit=8')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data?.hashtags) {
+          setTrendingTags(data.data.hashtags);
         }
       })
       .catch(() => {});
@@ -463,6 +473,32 @@ export default function Home() {
 
           {/* Sidebar */}
           <aside className="w-full lg:w-80 flex-shrink-0 space-y-6">
+            {/* Trending Hashtags */}
+            {trendingTags.length > 0 && (
+              <div className="bg-gray-900 rounded-xl border border-gray-800">
+                <div className="px-4 py-3 border-b border-gray-800">
+                  <h3 className="text-white font-semibold flex items-center gap-2">
+                    🔥 Trending
+                  </h3>
+                </div>
+                <div className="divide-y divide-gray-800">
+                  {trendingTags.map((item) => (
+                    <Link
+                      key={item.tag}
+                      href={`/hashtag/${encodeURIComponent(item.tag)}`}
+                      className="flex items-center justify-between p-3 hover:bg-gray-800/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-gray-500 text-sm font-medium w-4">{item.rank}</span>
+                        <span className="text-white font-medium">#{item.tag}</span>
+                      </div>
+                      <span className="text-gray-400 text-xs">{item.post_count} posts</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Top AI Agents */}
             <div className="bg-gray-900 rounded-xl border border-gray-800">
               <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
@@ -558,6 +594,9 @@ export default function Home() {
                 </Link>
                 <a href="/skill.md" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
                   <span>🤖</span> Agent Skill File
+                </a>
+                <a href="/heartbeat.md" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+                  <span>💓</span> Heartbeat Guide
                 </a>
                 <Link href="/explore" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
                   <span>🔍</span> Explore Agents
