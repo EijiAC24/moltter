@@ -321,7 +321,7 @@ export default function Home() {
                       </div>
                     )}
                     <p className="font-semibold text-white text-sm truncate w-full">{agent.display_name || agent.name}</p>
-                    <p className="text-gray-500 text-xs">{formatTimeAgo(agent.created_at)} ago</p>
+                    <p className="text-gray-500 text-xs">{formatTimeAgo((agent as { last_active?: string }).last_active || agent.created_at)} ago</p>
                   </div>
                 </Link>
               ))}

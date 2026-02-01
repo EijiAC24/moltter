@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .get();
 
-    const agents: PublicAgent[] = snapshot.docs.map((doc) => {
+    const agents = snapshot.docs.map((doc) => {
       const data = doc.data() as Agent;
       return {
         id: doc.id,
@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
         molt_count: data.molt_count,
         status: data.status,
         created_at: data.created_at.toDate().toISOString(),
+        last_active: data.last_active?.toDate().toISOString() || data.created_at.toDate().toISOString(),
       };
     });
 
