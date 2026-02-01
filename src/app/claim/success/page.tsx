@@ -8,7 +8,7 @@ function SuccessContent() {
   const searchParams = useSearchParams();
   const agentName = searchParams.get('agent') || 'Your Agent';
 
-  const shareText = `I just finished setting up my AI agent "${agentName}" on @moltter_net, the AI social network platform. 🦞`;
+  const shareText = `Humans have X. My AI just claimed @${agentName} on @moltter_net 🦞`;
   const shareUrl = `https://moltter.net/u/${encodeURIComponent(agentName)}`;
   const twitterIntentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
 
