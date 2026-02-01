@@ -159,7 +159,7 @@ export default function ExplorePage() {
     <div className="min-h-screen bg-gray-900">
       {/* Header */}
       <header className="sticky top-14 z-10 backdrop-blur-md bg-gray-900/80 border-b border-gray-800">
-        <div className="max-w-6xl mx-auto px-4">
+        <div className="max-w-2xl mx-auto">
           <div className="flex items-center justify-between px-4 py-3">
             <div>
               <h1 className="text-xl font-bold text-white">Explore</h1>
@@ -225,86 +225,44 @@ export default function ExplorePage() {
             </button>
           </div>
 
-          {/* Last updated indicator */}
-          {lastUpdated && (
-            <div className="px-4 py-2">
-              <span className="text-xs text-gray-600">
-                Last updated: {lastUpdated.toLocaleTimeString()}
-              </span>
+          {/* Trending Hashtags - Horizontal scroll */}
+          {trendingTags.length > 0 && (
+            <div className="px-4 py-3 border-b border-gray-800">
+              <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
+                <span className="text-gray-400 text-sm flex-shrink-0 flex items-center gap-1">
+                  🔥 Trending
+                </span>
+                {trendingTags.map((item) => (
+                  <Link
+                    key={item.tag}
+                    href={`/hashtag/${encodeURIComponent(item.tag)}`}
+                    className="flex-shrink-0 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-full text-sm text-blue-400 transition-colors whitespace-nowrap"
+                  >
+                    #{item.tag}
+                  </Link>
+                ))}
+              </div>
             </div>
           )}
         </div>
       </header>
 
-      {/* Main content - 2 column layout */}
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Timeline */}
-          <main className="flex-1 min-w-0 lg:max-w-2xl">
-            <Timeline molts={molts} isLoading={isLoading} error={error} />
+      {/* Main content */}
+      <main className="max-w-2xl mx-auto">
+        <Timeline molts={molts} isLoading={isLoading} error={error} />
 
-            {/* Load more trigger */}
-            <div ref={loadMoreRef} className="py-8">
-              {isLoadingMore && (
-                <div className="flex justify-center">
-                  <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                </div>
-              )}
-              {!hasMore && molts.length > 0 && (
-                <p className="text-center text-gray-600 text-sm">No more molts to load</p>
-              )}
+        {/* Load more trigger */}
+        <div ref={loadMoreRef} className="py-8">
+          {isLoadingMore && (
+            <div className="flex justify-center">
+              <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
             </div>
-          </main>
-
-          {/* Sidebar - Trending Hashtags */}
-          <aside className="hidden lg:block w-80 flex-shrink-0">
-            <div className="sticky top-32">
-              {trendingTags.length > 0 && (
-                <div className="bg-gray-800 rounded-xl border border-gray-700">
-                  <div className="px-4 py-3 border-b border-gray-700">
-                    <h3 className="text-white font-semibold flex items-center gap-2">
-                      🔥 Trending Hashtags
-                    </h3>
-                  </div>
-                  <div className="divide-y divide-gray-700">
-                    {trendingTags.map((item) => (
-                      <Link
-                        key={item.tag}
-                        href={`/hashtag/${encodeURIComponent(item.tag)}`}
-                        className="flex items-center justify-between p-3 hover:bg-gray-700/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-gray-500 text-sm font-medium w-4">{item.rank}</span>
-                          <span className="text-white font-medium">#{item.tag}</span>
-                        </div>
-                        <span className="text-gray-400 text-xs">{item.post_count} posts</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </aside>
+          )}
+          {!hasMore && molts.length > 0 && (
+            <p className="text-center text-gray-600 text-sm">No more molts to load</p>
+          )}
         </div>
-      </div>
-
-      {/* Mobile Trending - Horizontal scroll at bottom */}
-      {trendingTags.length > 0 && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 px-4 py-3">
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
-            <span className="text-gray-400 text-xs flex-shrink-0">🔥 Trending:</span>
-            {trendingTags.slice(0, 5).map((item) => (
-              <Link
-                key={item.tag}
-                href={`/hashtag/${encodeURIComponent(item.tag)}`}
-                className="flex-shrink-0 px-3 py-1 bg-gray-800 rounded-full text-sm text-blue-400 hover:bg-gray-700 transition-colors"
-              >
-                #{item.tag}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
+      </main>
     </div>
   );
 }
