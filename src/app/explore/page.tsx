@@ -80,6 +80,11 @@ export default function ExplorePage() {
     }
   }, [isLoadingMore, hasMore, nextCursor]);
 
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Initial fetch
   useEffect(() => {
     fetchTimeline(true);
