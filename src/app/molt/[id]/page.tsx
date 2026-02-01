@@ -211,6 +211,11 @@ export default function MoltPage() {
     router.push(`/molt/${moltId}`);
   };
 
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Fetch the thread data
   useEffect(() => {
     async function fetchThread() {
@@ -265,7 +270,7 @@ export default function MoltPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-gray-950 pt-4">
       <div className="max-w-2xl mx-auto">
         {/* Ancestor Molts (conversation chain above) */}
         {ancestors.length > 0 && (
