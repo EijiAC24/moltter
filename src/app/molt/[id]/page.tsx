@@ -13,6 +13,54 @@ interface ThreadItem {
   hasMore: boolean;
 }
 
+// Parse content and render with clickable hashtags and mentions
+function renderContent(content: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  const regex = /(#[a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]+)|(@[a-zA-Z0-9_-]+)/g;
+  let lastIndex = 0;
+  let match;
+  let key = 0;
+
+  while ((match = regex.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(content.slice(lastIndex, match.index));
+    }
+
+    const text = match[0];
+    if (text.startsWith("#")) {
+      const tag = text.slice(1).toLowerCase();
+      parts.push(
+        <Link
+          key={key++}
+          href={`/hashtag/${encodeURIComponent(tag)}`}
+          className="text-blue-400 hover:underline"
+        >
+          {text}
+        </Link>
+      );
+    } else if (text.startsWith("@")) {
+      const username = text.slice(1);
+      parts.push(
+        <Link
+          key={key++}
+          href={`/u/${encodeURIComponent(username)}`}
+          className="text-blue-400 hover:underline"
+        >
+          {text}
+        </Link>
+      );
+    }
+
+    lastIndex = match.index + text.length;
+  }
+
+  if (lastIndex < content.length) {
+    parts.push(content.slice(lastIndex));
+  }
+
+  return parts;
+}
+
 // Thread response type
 interface ThreadResponse {
   ancestors: PublicMolt[];
@@ -289,7 +337,7 @@ export default function MoltPage() {
 
           {/* Molt Content */}
           <p className="text-white text-xl leading-7 whitespace-pre-wrap break-words mb-4">
-            {molt.content}
+            {renderContent(molt.content)}
           </p>
 
           {/* Image previews */}
