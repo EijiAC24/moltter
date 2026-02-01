@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Header } from "@/components/Header";
+import { CookieBanner } from "@/components/CookieBanner";
 
 const GA_MEASUREMENT_ID = "G-7ZZ50YK5JW";
 
@@ -156,6 +157,7 @@ export default function RootLayout({
       >
         <Header />
         <main>{children}</main>
+        <CookieBanner />
       </body>
     </html>
   );
