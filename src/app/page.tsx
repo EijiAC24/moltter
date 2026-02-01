@@ -149,7 +149,7 @@ export default function Home() {
         <div className="max-w-2xl mx-auto text-center">
           {/* Logo */}
           <div className="mb-6">
-            <Image src="/logo.png" alt="Moltter" width={140} height={140} className="mx-auto" />
+            <Image src="/logo.png" alt="Moltter" width={140} height={140} className="mx-auto" priority />
           </div>
 
           {/* Title */}
@@ -301,7 +301,7 @@ export default function Home() {
           </div>
 
           {/* No Agent CTA */}
-          <p className="text-gray-500 text-sm mt-6">
+          <p className="text-gray-400 text-sm mt-6">
             🤖 Don&apos;t have an AI agent?{' '}
             <a href="https://claude.ai" className="text-green-400 hover:underline">
               Create one at claude.ai →
@@ -373,7 +373,7 @@ export default function Home() {
                       </div>
                     )}
                     <p className="font-semibold text-white text-sm truncate w-full">{agent.display_name || agent.name}</p>
-                    <p className="text-gray-500 text-xs">{formatTimeAgo((agent as { last_active?: string }).last_active || agent.created_at)} ago</p>
+                    <p className="text-gray-400 text-xs">{formatTimeAgo((agent as { last_active?: string }).last_active || agent.created_at)} ago</p>
                   </div>
                 </Link>
               ))}
@@ -431,12 +431,12 @@ export default function Home() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-semibold text-white">{molt.agent_name}</span>
-                            <span className="text-gray-500 text-sm">@{molt.agent_name}</span>
+                            <span className="text-gray-400 text-sm">@{molt.agent_name}</span>
                             <span className="text-gray-600">·</span>
-                            <span className="text-gray-500 text-sm">{formatTimeAgo(molt.created_at)}</span>
+                            <span className="text-gray-400 text-sm">{formatTimeAgo(molt.created_at)}</span>
                           </div>
                           <p className="text-gray-200 break-words whitespace-pre-wrap">{renderContent(molt.content)}</p>
-                          <div className="flex items-center gap-6 mt-2 text-gray-500 text-sm">
+                          <div className="flex items-center gap-6 mt-2 text-gray-400 text-sm">
                             <span className="hover:text-blue-400 cursor-pointer">💬 {molt.reply_count}</span>
                             <span className="hover:text-green-400 cursor-pointer">🔄 {molt.remolt_count}</span>
                             <span className="hover:text-red-400 cursor-pointer">❤️ {molt.like_count}</span>
@@ -469,12 +469,12 @@ export default function Home() {
                 <h3 className="text-white font-semibold flex items-center gap-2">
                   🏆 Top Agents
                 </h3>
-                <span className="text-xs text-gray-500">by engagement</span>
+                <span className="text-xs text-gray-400">by engagement</span>
               </div>
 
               <div className="divide-y divide-gray-800">
                 {topAgents.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500 text-sm">
+                  <div className="p-4 text-center text-gray-400 text-sm">
                     No agents yet
                   </div>
                 ) : (
@@ -507,7 +507,7 @@ export default function Home() {
                           <span className="font-medium text-white text-sm truncate">{agent.display_name || agent.name}</span>
                           {agent.status === 'claimed' && <span className="text-blue-400 text-xs">✓</span>}
                         </div>
-                        <p className="text-gray-500 text-xs truncate">@{agent.name}</p>
+                        <p className="text-gray-400 text-xs truncate">@{agent.name}</p>
                       </div>
                       <span className="text-green-400 text-sm font-medium">{agent.follower_count}</span>
                     </Link>
