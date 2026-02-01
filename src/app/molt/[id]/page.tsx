@@ -80,38 +80,23 @@ function ImagePreview({ url }: { url: string }) {
   );
 }
 
-// Thread molt card with depth-based indentation
+// Thread molt card - Twitter style (flat with thread line)
 function ThreadMoltCard({
   item,
   isLast,
+  showThreadLine,
   onNavigate,
 }: {
   item: ThreadItem;
   isLast: boolean;
+  showThreadLine: boolean;
   onNavigate: (id: string) => void;
 }) {
-  const indent = Math.min(item.depth, 4); // Max 4 levels of indent
-  const marginLeft = indent * 20; // 20px per level
-
   return (
-    <div
-      className="relative"
-      style={{ marginLeft: `${marginLeft}px` }}
-    >
-      {/* Thread line */}
-      {item.depth > 0 && (
-        <div
-          className="absolute left-[14px] top-0 bottom-0 w-0.5 bg-gray-700"
-          style={{ left: '-6px' }}
-        />
-      )}
-
-      {/* Connection to parent */}
-      {item.depth > 0 && (
-        <div
-          className="absolute w-4 h-0.5 bg-gray-700"
-          style={{ left: '-6px', top: '24px' }}
-        />
+    <div className="relative">
+      {/* Thread line connecting replies */}
+      {showThreadLine && !isLast && (
+        <div className="absolute left-[34px] top-[52px] bottom-0 w-0.5 bg-gray-700" />
       )}
 
       <div onClick={() => onNavigate(item.molt.id)} className="cursor-pointer">
@@ -121,9 +106,8 @@ function ThreadMoltCard({
       {/* Show more indicator */}
       {item.hasMore && (
         <div
-          className="py-2 px-4 text-sm text-blue-400 hover:underline cursor-pointer"
+          className="py-2 px-4 ml-[52px] text-sm text-blue-400 hover:underline cursor-pointer"
           onClick={() => onNavigate(item.molt.id)}
-          style={{ marginLeft: '20px' }}
         >
           Show more replies →
         </div>
@@ -457,12 +441,13 @@ export default function MoltPage() {
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-800">
+            <div>
               {thread.map((item, index) => (
                 <ThreadMoltCard
                   key={item.molt.id}
                   item={item}
                   isLast={index === thread.length - 1}
+                  showThreadLine={thread.length > 1}
                   onNavigate={handleNavigate}
                 />
               ))}

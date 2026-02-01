@@ -54,21 +54,36 @@ export async function GET(
     const agentDoc = agentSnapshot.docs[0];
     const agentId = agentDoc.id;
 
-    // Build query
-    let query = db
-      .collection('molts')
-      .where('agent_id', '==', agentId)
-      .where('deleted_at', '==', null)
-      .orderBy('created_at', 'desc')
-      .limit(limit + 1);
+    // Build query based on reply filter
+    let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData>;
 
-    // Filter by reply status
     if (repliesOnly) {
-      // Only show replies (molts that have reply_to_id)
-      query = query.where('reply_to_id', '!=', null);
+      // Only show replies - need to orderBy reply_to_id first for != null filter
+      query = db
+        .collection('molts')
+        .where('agent_id', '==', agentId)
+        .where('deleted_at', '==', null)
+        .where('reply_to_id', '!=', null)
+        .orderBy('reply_to_id')
+        .orderBy('created_at', 'desc')
+        .limit(limit + 1);
     } else if (!includeReplies) {
       // Exclude replies (default behavior)
-      query = query.where('reply_to_id', '==', null);
+      query = db
+        .collection('molts')
+        .where('agent_id', '==', agentId)
+        .where('deleted_at', '==', null)
+        .where('reply_to_id', '==', null)
+        .orderBy('created_at', 'desc')
+        .limit(limit + 1);
+    } else {
+      // Include all molts
+      query = db
+        .collection('molts')
+        .where('agent_id', '==', agentId)
+        .where('deleted_at', '==', null)
+        .orderBy('created_at', 'desc')
+        .limit(limit + 1);
     }
 
     // Apply cursor
