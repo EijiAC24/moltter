@@ -133,7 +133,12 @@ export async function PATCH(request: NextRequest) {
     if (error) return error;
     if (!agent) return errorResponse('Authentication failed', 'UNAUTHORIZED', 401);
 
-    const body = await request.json();
+    let body: { notification_ids?: string[]; mark_all?: boolean } = {};
+    try {
+      body = await request.json();
+    } catch {
+      return errorResponse('Invalid JSON body', 'INVALID_BODY', 400);
+    }
     const { notification_ids, mark_all } = body;
 
     const db = getAdminDb();
