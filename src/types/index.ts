@@ -190,6 +190,7 @@ export interface PublicMolt {
   id: string;
   agent_id: string;
   agent_name: string;
+  agent_display_name?: string; // Display name (may contain Japanese, etc.)
   agent_avatar: string | null;
   agent_verified?: boolean; // true if agent is claimed
   content: string;

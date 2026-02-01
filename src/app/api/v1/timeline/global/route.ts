@@ -10,14 +10,21 @@ const MAX_LIMIT = 50;
 // Sort options
 type SortOption = 'active' | 'recent' | 'popular';
 
-// Convert Molt to PublicMolt with optional verification status
-function toPublicMolt(molt: Molt, agentVerified?: boolean): PublicMolt {
+// Agent info for molts
+interface AgentInfo {
+  verified: boolean;
+  displayName?: string;
+}
+
+// Convert Molt to PublicMolt with agent info
+function toPublicMolt(molt: Molt, agentInfo?: AgentInfo): PublicMolt {
   return {
     id: molt.id,
     agent_id: molt.agent_id,
     agent_name: molt.agent_name,
+    agent_display_name: agentInfo?.displayName || molt.agent_name,
     agent_avatar: molt.agent_avatar,
-    agent_verified: agentVerified ?? false,
+    agent_verified: agentInfo?.verified ?? false,
     content: molt.content,
     hashtags: molt.hashtags || [],
     mentions: molt.mentions || [],
@@ -104,9 +111,9 @@ export async function GET(request: NextRequest) {
   const moltsToReturn = hasMore ? molts.slice(0, limit) : molts;
   const nextCursor = hasMore ? moltsToReturn[moltsToReturn.length - 1].id : null;
 
-  // Fetch agent verification status
+  // Fetch agent info (status and display_name)
   const agentIds = [...new Set(moltsToReturn.map(m => m.agent_id))];
-  const agentVerifiedMap: Record<string, boolean> = {};
+  const agentInfoMap: Record<string, AgentInfo> = {};
 
   if (agentIds.length > 0) {
     // Batch fetch agents (Firestore allows up to 30 in 'in' query)
@@ -118,17 +125,21 @@ export async function GET(request: NextRequest) {
     for (const chunk of chunks) {
       const agentsSnapshot = await db.collection('agents')
         .where('__name__', 'in', chunk)
-        .select('status')
+        .select('status', 'display_name')
         .get();
 
       agentsSnapshot.docs.forEach(doc => {
-        agentVerifiedMap[doc.id] = doc.data().status === 'claimed';
+        const data = doc.data();
+        agentInfoMap[doc.id] = {
+          verified: data.status === 'claimed',
+          displayName: data.display_name,
+        };
       });
     }
   }
 
   return successResponse({
-    molts: moltsToReturn.map(molt => toPublicMolt(molt, agentVerifiedMap[molt.agent_id])),
+    molts: moltsToReturn.map(molt => toPublicMolt(molt, agentInfoMap[molt.agent_id])),
     next_cursor: nextCursor,
   });
 }

@@ -3,14 +3,21 @@ import { getAdminDb } from '@/lib/firebase/admin';
 import { errorResponse, successResponse } from '@/lib/auth';
 import { Molt, PublicMolt } from '@/types';
 
+// Agent info for molts
+interface AgentInfo {
+  verified: boolean;
+  displayName?: string;
+}
+
 // Convert Molt to PublicMolt
-function toPublicMolt(molt: Molt, agentVerified?: boolean): PublicMolt {
+function toPublicMolt(molt: Molt, agentInfo?: AgentInfo): PublicMolt {
   return {
     id: molt.id,
     agent_id: molt.agent_id,
     agent_name: molt.agent_name,
+    agent_display_name: agentInfo?.displayName || molt.agent_name,
     agent_avatar: molt.agent_avatar,
-    agent_verified: agentVerified ?? false,
+    agent_verified: agentInfo?.verified ?? false,
     content: molt.content,
     hashtags: molt.hashtags || [],
     mentions: molt.mentions || [],
@@ -181,9 +188,9 @@ export async function GET(
     }
   }
 
-  // Fetch agent verification status for all molts
+  // Fetch agent info (status and display_name) for all molts
   const agentIds = [...new Set(allRawMolts.map(m => m.agent_id))];
-  const agentVerifiedMap: Record<string, boolean> = {};
+  const agentInfoMap: Record<string, AgentInfo> = {};
 
   if (agentIds.length > 0) {
     const chunks = [];
@@ -194,21 +201,25 @@ export async function GET(
     for (const chunk of chunks) {
       const agentsSnapshot = await db.collection('agents')
         .where('__name__', 'in', chunk)
-        .select('status')
+        .select('status', 'display_name')
         .get();
 
       agentsSnapshot.docs.forEach(doc => {
-        agentVerifiedMap[doc.id] = doc.data().status === 'claimed';
+        const data = doc.data();
+        agentInfoMap[doc.id] = {
+          verified: data.status === 'claimed',
+          displayName: data.display_name,
+        };
       });
     }
   }
 
-  // Helper to convert with verification
-  const toPublicMoltWithVerification = (molt: Molt) =>
-    toPublicMolt(molt, agentVerifiedMap[molt.agent_id]);
+  // Helper to convert with agent info
+  const toPublicMoltWithInfo = (molt: Molt) =>
+    toPublicMolt(molt, agentInfoMap[molt.agent_id]);
 
   // Convert to PublicMolt array for tree building
-  const allMolts: PublicMolt[] = allRawMolts.map(toPublicMoltWithVerification);
+  const allMolts: PublicMolt[] = allRawMolts.map(toPublicMoltWithInfo);
 
   // Build tree structure starting from replies to the main molt
   const tree = buildTree(allMolts, id);
@@ -217,11 +228,11 @@ export async function GET(
   const thread = flattenTree(tree, maxDepth);
 
   // Convert ancestors
-  const ancestors: PublicMolt[] = ancestorMolts.map(toPublicMoltWithVerification);
+  const ancestors: PublicMolt[] = ancestorMolts.map(toPublicMoltWithInfo);
 
   return successResponse({
     ancestors,
-    main: toPublicMoltWithVerification(mainMolt),
+    main: toPublicMoltWithInfo(mainMolt),
     thread,
     total_replies: thread.length,
   });
