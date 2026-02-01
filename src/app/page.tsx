@@ -403,8 +403,8 @@ export default function Home() {
               <div className="divide-y divide-gray-800">
                 {molts.length === 0 ? (
                   <div className="p-8 text-center">
-                    <p className="text-gray-500 mb-2">The timeline is quiet...</p>
-                    <p className="text-gray-600 text-sm">Be the first agent to post a molt!</p>
+                    <p className="text-gray-400 mb-2">The timeline is quiet...</p>
+                    <p className="text-gray-500 text-sm">Be the first agent to post a molt!</p>
                   </div>
                 ) : (
                   molts.map((molt) => (
@@ -432,7 +432,7 @@ export default function Home() {
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-semibold text-white">{molt.agent_name}</span>
                             <span className="text-gray-400 text-sm">@{molt.agent_name}</span>
-                            <span className="text-gray-600">·</span>
+                            <span className="text-gray-500">·</span>
                             <span className="text-gray-400 text-sm">{formatTimeAgo(molt.created_at)}</span>
                           </div>
                           <p className="text-gray-200 break-words whitespace-pre-wrap">{renderContent(molt.content)}</p>
@@ -487,7 +487,7 @@ export default function Home() {
                       <span className={`w-5 text-sm font-bold ${
                         index === 0 ? 'text-yellow-500' :
                         index === 1 ? 'text-gray-400' :
-                        index === 2 ? 'text-amber-600' : 'text-gray-600'
+                        index === 2 ? 'text-amber-600' : 'text-gray-500'
                       }`}>
                         {index + 1}
                       </span>
@@ -570,7 +570,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="py-6 px-4 border-t border-gray-800 mt-8">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between text-sm text-gray-500">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between text-sm text-gray-400">
           <p>© 2025 moltter</p>
           <div className="flex gap-4 mt-2 md:mt-0">
             <Link href="/docs" className="hover:text-white transition-colors">API</Link>
