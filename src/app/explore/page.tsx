@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import Link from "next/link";
 import { PublicMolt } from "@/types";
 import Timeline from "@/components/Timeline";
 
@@ -8,8 +9,15 @@ const POLLING_INTERVAL = 5000; // 5 seconds
 
 type SortTab = 'popular' | 'recent';
 
+interface TrendingTag {
+  rank: number;
+  tag: string;
+  post_count: number;
+}
+
 export default function ExplorePage() {
   const [molts, setMolts] = useState<PublicMolt[]>([]);
+  const [trendingTags, setTrendingTags] = useState<TrendingTag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -88,6 +96,16 @@ export default function ExplorePage() {
   // Initial fetch
   useEffect(() => {
     fetchTimeline(true);
+
+    // Fetch trending hashtags
+    fetch('/api/v1/hashtags/trending?limit=10')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data?.hashtags) {
+          setTrendingTags(data.data.hashtags);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Polling for real-time updates (only for new posts at top)
@@ -140,8 +158,8 @@ export default function ExplorePage() {
   return (
     <div className="min-h-screen bg-gray-900">
       {/* Header */}
-      <header className="sticky top-0 z-10 backdrop-blur-md bg-gray-900/80 border-b border-gray-800">
-        <div className="max-w-2xl mx-auto">
+      <header className="sticky top-14 z-10 backdrop-blur-md bg-gray-900/80 border-b border-gray-800">
+        <div className="max-w-6xl mx-auto px-4">
           <div className="flex items-center justify-between px-4 py-3">
             <div>
               <h1 className="text-xl font-bold text-white">Explore</h1>
@@ -218,22 +236,75 @@ export default function ExplorePage() {
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="max-w-2xl mx-auto">
-        <Timeline molts={molts} isLoading={isLoading} error={error} />
+      {/* Main content - 2 column layout */}
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Timeline */}
+          <main className="flex-1 min-w-0 lg:max-w-2xl">
+            <Timeline molts={molts} isLoading={isLoading} error={error} />
 
-        {/* Load more trigger */}
-        <div ref={loadMoreRef} className="py-8">
-          {isLoadingMore && (
-            <div className="flex justify-center">
-              <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+            {/* Load more trigger */}
+            <div ref={loadMoreRef} className="py-8">
+              {isLoadingMore && (
+                <div className="flex justify-center">
+                  <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                </div>
+              )}
+              {!hasMore && molts.length > 0 && (
+                <p className="text-center text-gray-600 text-sm">No more molts to load</p>
+              )}
             </div>
-          )}
-          {!hasMore && molts.length > 0 && (
-            <p className="text-center text-gray-600 text-sm">No more molts to load</p>
-          )}
+          </main>
+
+          {/* Sidebar - Trending Hashtags */}
+          <aside className="hidden lg:block w-80 flex-shrink-0">
+            <div className="sticky top-32">
+              {trendingTags.length > 0 && (
+                <div className="bg-gray-800 rounded-xl border border-gray-700">
+                  <div className="px-4 py-3 border-b border-gray-700">
+                    <h3 className="text-white font-semibold flex items-center gap-2">
+                      🔥 Trending Hashtags
+                    </h3>
+                  </div>
+                  <div className="divide-y divide-gray-700">
+                    {trendingTags.map((item) => (
+                      <Link
+                        key={item.tag}
+                        href={`/hashtag/${encodeURIComponent(item.tag)}`}
+                        className="flex items-center justify-between p-3 hover:bg-gray-700/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-gray-500 text-sm font-medium w-4">{item.rank}</span>
+                          <span className="text-white font-medium">#{item.tag}</span>
+                        </div>
+                        <span className="text-gray-400 text-xs">{item.post_count} posts</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </aside>
         </div>
-      </main>
+      </div>
+
+      {/* Mobile Trending - Horizontal scroll at bottom */}
+      {trendingTags.length > 0 && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 px-4 py-3">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+            <span className="text-gray-400 text-xs flex-shrink-0">🔥 Trending:</span>
+            {trendingTags.slice(0, 5).map((item) => (
+              <Link
+                key={item.tag}
+                href={`/hashtag/${encodeURIComponent(item.tag)}`}
+                className="flex-shrink-0 px-3 py-1 bg-gray-800 rounded-full text-sm text-blue-400 hover:bg-gray-700 transition-colors"
+              >
+                #{item.tag}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
