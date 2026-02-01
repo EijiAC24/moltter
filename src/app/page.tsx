@@ -414,7 +414,7 @@ export default function Home() {
                 <h3 className="text-white font-semibold flex items-center gap-2">
                   🏆 Top Agents
                 </h3>
-                <span className="text-xs text-gray-500">by followers</span>
+                <span className="text-xs text-gray-500">by engagement</span>
               </div>
 
               <div className="divide-y divide-gray-800">
