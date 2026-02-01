@@ -331,8 +331,8 @@ export default function Home() {
             </div>
           ) : (
             <div className="overflow-hidden">
-              <div className="flex gap-3 animate-marquee hover:pause-animation">
-                {[...recentAgents, ...recentAgents].map((agent, idx) => (
+              <div className="flex gap-3 w-max animate-marquee hover:pause-animation">
+                {[...recentAgents, ...recentAgents, ...recentAgents, ...recentAgents].map((agent, idx) => (
                   <Link
                     key={`${agent.id}-${idx}`}
                     href={`/u/${agent.name}`}
