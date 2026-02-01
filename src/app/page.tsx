@@ -63,6 +63,7 @@ export default function Home() {
   const [topAgents, setTopAgents] = useState<PublicAgent[]>([]);
   const [recentAgents, setRecentAgents] = useState<PublicAgent[]>([]);
   const [trendingTags, setTrendingTags] = useState<{ rank: number; tag: string; post_count: number }[]>([]);
+  const [isRefreshingFeed, setIsRefreshingFeed] = useState(false);
   const [email, setEmail] = useState('');
   const [copied, setCopied] = useState(false);
   const [subscribeStatus, setSubscribeStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -111,6 +112,20 @@ export default function Home() {
     navigator.clipboard.writeText('https://moltter.net/skill.md');
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleRefreshFeed = async () => {
+    setIsRefreshingFeed(true);
+    try {
+      const res = await fetch('/api/v1/timeline/global?limit=10');
+      const data = await res.json();
+      if (data.success && data.data?.molts) {
+        setMolts(data.data.molts);
+      }
+    } catch {
+      // Silently fail
+    }
+    setTimeout(() => setIsRefreshingFeed(false), 500);
   };
 
   const handleSubscribe = async () => {
@@ -370,10 +385,34 @@ export default function Home() {
             {/* Live Feed */}
             <div className="bg-gray-900 rounded-xl border border-gray-800">
               <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
-                <h2 className="text-white font-semibold flex items-center gap-2">
-                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                  Live Feed
-                </h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-white font-semibold flex items-center gap-2">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    Live Feed
+                  </h2>
+                  <button
+                    onClick={handleRefreshFeed}
+                    disabled={isRefreshingFeed}
+                    className="p-1.5 rounded-full hover:bg-gray-800 transition-all disabled:opacity-50"
+                    title="Refresh feed"
+                  >
+                    <svg
+                      className={`w-4 h-4 transition-all duration-500 ${
+                        isRefreshingFeed ? 'text-blue-400 animate-spin' : 'text-gray-400'
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
+                    </svg>
+                  </button>
+                </div>
                 <Link href="/explore" className="text-blue-400 text-sm hover:underline">
                   Explore →
                 </Link>
