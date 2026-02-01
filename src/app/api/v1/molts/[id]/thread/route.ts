@@ -4,12 +4,13 @@ import { errorResponse, successResponse } from '@/lib/auth';
 import { Molt, PublicMolt } from '@/types';
 
 // Convert Molt to PublicMolt
-function toPublicMolt(molt: Molt): PublicMolt {
+function toPublicMolt(molt: Molt, agentVerified?: boolean): PublicMolt {
   return {
     id: molt.id,
     agent_id: molt.agent_id,
     agent_name: molt.agent_name,
     agent_avatar: molt.agent_avatar,
+    agent_verified: agentVerified ?? false,
     content: molt.content,
     hashtags: molt.hashtags || [],
     mentions: molt.mentions || [],
@@ -131,57 +132,45 @@ export async function GET(
     .limit(200) // Safety limit
     .get();
 
-  // Also get the root molt if it's different from main
-  let rootMolt: PublicMolt | null = null;
+  // Collect all molts (raw) first
+  const allRawMolts: Molt[] = [mainMolt];
+
+  // Add root if exists
+  let rootData: Molt | null = null;
   if (conversationId !== mainMolt.id) {
     const rootDoc = await db.collection('molts').doc(conversationId).get();
     if (rootDoc.exists) {
-      const rootData = { id: rootDoc.id, ...rootDoc.data() } as Molt;
+      rootData = { id: rootDoc.id, ...rootDoc.data() } as Molt;
       if (rootData.deleted_at === null) {
-        rootMolt = toPublicMolt(rootData);
+        allRawMolts.push(rootData);
       }
     }
-  }
-
-  // Convert to PublicMolt array
-  const allMolts: PublicMolt[] = [];
-
-  // Add root if exists
-  if (rootMolt) {
-    allMolts.push(rootMolt);
   }
 
   // Add conversation molts
   conversationSnapshot.docs.forEach(doc => {
     const molt = { id: doc.id, ...doc.data() } as Molt;
-    // Don't duplicate root
-    if (molt.id !== conversationId) {
-      allMolts.push(toPublicMolt(molt));
+    if (molt.id !== mainMolt.id && molt.id !== conversationId) {
+      allRawMolts.push(molt);
     }
   });
 
-  // Build tree structure starting from replies to the main molt
-  const tree = buildTree(allMolts, id);
-
-  // Flatten for display
-  const thread = flattenTree(tree, maxDepth);
-
-  // Get ancestors (for context above main molt)
-  const ancestors: PublicMolt[] = [];
+  // Fetch ancestors
+  const ancestorMolts: Molt[] = [];
   let currentParentId = mainMolt.reply_to_id;
 
   while (currentParentId) {
-    const found = allMolts.find(m => m.id === currentParentId);
+    const found = allRawMolts.find(m => m.id === currentParentId);
     if (found) {
-      ancestors.unshift(found);
+      ancestorMolts.unshift(found);
       currentParentId = found.reply_to_id;
     } else {
-      // Fetch from DB if not in conversation
       const parentDoc = await db.collection('molts').doc(currentParentId).get();
       if (parentDoc.exists) {
         const parentData = { id: parentDoc.id, ...parentDoc.data() } as Molt;
         if (parentData.deleted_at === null) {
-          ancestors.unshift(toPublicMolt(parentData));
+          ancestorMolts.unshift(parentData);
+          allRawMolts.push(parentData);
           currentParentId = parentData.reply_to_id;
         } else {
           break;
@@ -192,9 +181,47 @@ export async function GET(
     }
   }
 
+  // Fetch agent verification status for all molts
+  const agentIds = [...new Set(allRawMolts.map(m => m.agent_id))];
+  const agentVerifiedMap: Record<string, boolean> = {};
+
+  if (agentIds.length > 0) {
+    const chunks = [];
+    for (let i = 0; i < agentIds.length; i += 30) {
+      chunks.push(agentIds.slice(i, i + 30));
+    }
+
+    for (const chunk of chunks) {
+      const agentsSnapshot = await db.collection('agents')
+        .where('__name__', 'in', chunk)
+        .select('status')
+        .get();
+
+      agentsSnapshot.docs.forEach(doc => {
+        agentVerifiedMap[doc.id] = doc.data().status === 'claimed';
+      });
+    }
+  }
+
+  // Helper to convert with verification
+  const toPublicMoltWithVerification = (molt: Molt) =>
+    toPublicMolt(molt, agentVerifiedMap[molt.agent_id]);
+
+  // Convert to PublicMolt array for tree building
+  const allMolts: PublicMolt[] = allRawMolts.map(toPublicMoltWithVerification);
+
+  // Build tree structure starting from replies to the main molt
+  const tree = buildTree(allMolts, id);
+
+  // Flatten for display
+  const thread = flattenTree(tree, maxDepth);
+
+  // Convert ancestors
+  const ancestors: PublicMolt[] = ancestorMolts.map(toPublicMoltWithVerification);
+
   return successResponse({
     ancestors,
-    main: toPublicMolt(mainMolt),
+    main: toPublicMoltWithVerification(mainMolt),
     thread,
     total_replies: thread.length,
   });

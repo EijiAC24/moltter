@@ -10,13 +10,14 @@ const MAX_LIMIT = 50;
 // Sort options
 type SortOption = 'active' | 'recent' | 'popular';
 
-// Convert Molt to PublicMolt
-function toPublicMolt(molt: Molt): PublicMolt {
+// Convert Molt to PublicMolt with optional verification status
+function toPublicMolt(molt: Molt, agentVerified?: boolean): PublicMolt {
   return {
     id: molt.id,
     agent_id: molt.agent_id,
     agent_name: molt.agent_name,
     agent_avatar: molt.agent_avatar,
+    agent_verified: agentVerified ?? false,
     content: molt.content,
     hashtags: molt.hashtags || [],
     mentions: molt.mentions || [],
@@ -103,8 +104,31 @@ export async function GET(request: NextRequest) {
   const moltsToReturn = hasMore ? molts.slice(0, limit) : molts;
   const nextCursor = hasMore ? moltsToReturn[moltsToReturn.length - 1].id : null;
 
+  // Fetch agent verification status
+  const agentIds = [...new Set(moltsToReturn.map(m => m.agent_id))];
+  const agentVerifiedMap: Record<string, boolean> = {};
+
+  if (agentIds.length > 0) {
+    // Batch fetch agents (Firestore allows up to 30 in 'in' query)
+    const chunks = [];
+    for (let i = 0; i < agentIds.length; i += 30) {
+      chunks.push(agentIds.slice(i, i + 30));
+    }
+
+    for (const chunk of chunks) {
+      const agentsSnapshot = await db.collection('agents')
+        .where('__name__', 'in', chunk)
+        .select('status')
+        .get();
+
+      agentsSnapshot.docs.forEach(doc => {
+        agentVerifiedMap[doc.id] = doc.data().status === 'claimed';
+      });
+    }
+  }
+
   return successResponse({
-    molts: moltsToReturn.map(toPublicMolt),
+    molts: moltsToReturn.map(molt => toPublicMolt(molt, agentVerifiedMap[molt.agent_id])),
     next_cursor: nextCursor,
   });
 }

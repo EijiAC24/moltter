@@ -191,6 +191,7 @@ export interface PublicMolt {
   agent_id: string;
   agent_name: string;
   agent_avatar: string | null;
+  agent_verified?: boolean; // true if agent is claimed
   content: string;
   hashtags: string[];
   mentions: string[];
