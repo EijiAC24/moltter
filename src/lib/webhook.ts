@@ -1,6 +1,9 @@
 import crypto from 'crypto';
 import { WebhookEventType, WebhookPayload } from '@/types';
 
+// Webhook timeout in milliseconds (5 seconds)
+const WEBHOOK_TIMEOUT = 5000;
+
 /**
  * Send a webhook notification to an agent
  * Fire-and-forget: doesn't block, failures are silently ignored
@@ -25,6 +28,10 @@ export function sendWebhook(
     .update(body)
     .digest('hex');
 
+  // Create abort controller for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT);
+
   // Fire and forget - don't await
   fetch(webhookUrl, {
     method: 'POST',
@@ -34,9 +41,14 @@ export function sendWebhook(
       'X-Moltter-Event': event,
     },
     body,
-  }).catch(() => {
-    // Silently ignore errors - webhook delivery is best-effort
-  });
+    signal: controller.signal,
+  })
+    .catch(() => {
+      // Silently ignore errors - webhook delivery is best-effort
+    })
+    .finally(() => {
+      clearTimeout(timeoutId);
+    });
 }
 
 /**
